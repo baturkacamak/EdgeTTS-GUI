@@ -110,6 +110,10 @@ ICONS = {
     "SEEK": "⏩",
     "TEXT": "📝",
     "LOAD": "📂",
+    "FIND": "🔍",
+    "REPLACE": "🔄",
+    "NEXT": "⏭️",
+    "PREVIOUS": "⏮️",
 }
 
 # Supported input file formats
@@ -431,6 +435,314 @@ class ToolTip:
         )
         label.pack()
 
+class FindReplaceDialog(tkinter.Toplevel):
+    def __init__(self, parent, text_widget):
+        super().__init__(parent)
+        
+        self.text_widget = text_widget
+        self.title("Find & Replace")
+        self.geometry("450x220")  # Slightly larger for better spacing
+        self.resizable(False, False)
+        
+        # Configure dialog appearance based on parent's theme
+        self.configure(bg=COLORS["background_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["background_light"])
+        
+        # Make dialog modal
+        self.transient(parent)
+        
+        # Variables for find/replace
+        self.find_var = tkinter.StringVar()
+        self.replace_var = tkinter.StringVar()
+        self.case_sensitive_var = tkinter.BooleanVar(value=False)
+        self.wrap_around_var = tkinter.BooleanVar(value=True)
+        self.current_matches = []
+        self.current_match_index = -1
+        
+        # Create the dialog content
+        self.create_widgets()
+        
+        # Center the dialog on parent
+        self.center_on_parent()
+        
+        # Bind keyboard shortcuts
+        self.bind("<Return>", lambda e: self.find_next())
+        self.bind("<Escape>", lambda e: self.destroy())
+        
+        # Set focus after a short delay to ensure window is ready
+        self.after(100, self.set_focus)
+        
+        # Wait for window to be ready before grabbing focus
+        self.wait_visibility()
+        self.grab_set()
+        
+    def set_focus(self):
+        """Set focus to find entry after ensuring window is ready"""
+        if self.winfo_exists():
+            self.find_entry.focus_set()
+        
+    def create_widgets(self):
+        # Main frame with proper background color
+        main_frame = ctk.CTkFrame(
+            self,
+            fg_color=COLORS["background_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["background_light"],
+            corner_radius=10
+        )
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Find frame
+        find_frame = ctk.CTkFrame(main_frame, corner_radius=8)
+        find_frame.pack(fill="x", pady=(0, 5))
+        
+        find_label = ctk.CTkLabel(
+            find_frame,
+            text=f"{ICONS['FIND']} Find:",
+            font=ctk.CTkFont(size=13),
+            anchor="w"
+        )
+        find_label.pack(side="left", padx=10, pady=5)
+        
+        self.find_entry = ctk.CTkEntry(
+            find_frame,
+            textvariable=self.find_var,
+            width=300,
+            height=32,
+            placeholder_text="Enter text to find..."
+        )
+        self.find_entry.pack(side="left", padx=10, pady=5)
+        
+        # Replace frame
+        replace_frame = ctk.CTkFrame(main_frame, corner_radius=8)
+        replace_frame.pack(fill="x", pady=5)
+        
+        replace_label = ctk.CTkLabel(
+            replace_frame,
+            text=f"{ICONS['REPLACE']} Replace:",
+            font=ctk.CTkFont(size=13),
+            anchor="w"
+        )
+        replace_label.pack(side="left", padx=10, pady=5)
+        
+        self.replace_entry = ctk.CTkEntry(
+            replace_frame,
+            textvariable=self.replace_var,
+            width=300,
+            height=32,
+            placeholder_text="Enter replacement text..."
+        )
+        self.replace_entry.pack(side="left", padx=10, pady=5)
+        
+        # Options frame
+        options_frame = ctk.CTkFrame(main_frame, corner_radius=8)
+        options_frame.pack(fill="x", pady=5)
+        
+        case_check = ctk.CTkCheckBox(
+            options_frame,
+            text="Case sensitive",
+            variable=self.case_sensitive_var,
+            font=ctk.CTkFont(size=12)
+        )
+        case_check.pack(side="left", padx=10, pady=5)
+        
+        wrap_check = ctk.CTkCheckBox(
+            options_frame,
+            text="Wrap around",
+            variable=self.wrap_around_var,
+            font=ctk.CTkFont(size=12)
+        )
+        wrap_check.pack(side="left", padx=10, pady=5)
+        
+        # Buttons frame
+        buttons_frame = ctk.CTkFrame(main_frame, corner_radius=8)
+        buttons_frame.pack(fill="x", pady=5)
+        
+        # Navigation buttons
+        nav_frame = ctk.CTkFrame(buttons_frame, fg_color="transparent")
+        nav_frame.pack(side="left", padx=10)
+        
+        ctk.CTkButton(
+            nav_frame,
+            text=f"{ICONS['PREVIOUS']} Previous",
+            command=self.find_previous,
+            width=100,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["primary"]
+        ).pack(side="left", padx=2)
+        
+        ctk.CTkButton(
+            nav_frame,
+            text=f"{ICONS['NEXT']} Next",
+            command=self.find_next,
+            width=100,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["primary"]
+        ).pack(side="left", padx=2)
+        
+        # Replace buttons
+        replace_buttons_frame = ctk.CTkFrame(buttons_frame, fg_color="transparent")
+        replace_buttons_frame.pack(side="right", padx=10)
+        
+        ctk.CTkButton(
+            replace_buttons_frame,
+            text="Replace",
+            command=self.replace_current,
+            width=100,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS["accent"],
+            hover_color="#00A080"
+        ).pack(side="left", padx=2)
+        
+        ctk.CTkButton(
+            replace_buttons_frame,
+            text="Replace All",
+            command=self.replace_all,
+            width=100,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS["accent"],
+            hover_color="#00A080"
+        ).pack(side="left", padx=2)
+        
+        # Status label with better styling
+        self.status_label = ctk.CTkLabel(
+            main_frame,
+            text="",
+            font=ctk.CTkFont(size=12),
+            anchor="w",
+            height=25
+        )
+        self.status_label.pack(fill="x", padx=10, pady=5)
+        
+    def center_on_parent(self):
+        self.update_idletasks()
+        parent = self.master
+        
+        # Get parent and dialog dimensions
+        parent_x = parent.winfo_x()
+        parent_y = parent.winfo_y()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        
+        dialog_width = self.winfo_width()
+        dialog_height = self.winfo_height()
+        
+        # Calculate center position
+        x = parent_x + (parent_width - dialog_width) // 2
+        y = parent_y + (parent_height - dialog_height) // 2
+        
+        self.geometry(f"+{x}+{y}")
+        
+    def find_text(self, start_index="1.0", forwards=True):
+        search_text = self.find_var.get()
+        if not search_text:
+            self.status_label.configure(text="Please enter text to search")
+            return None
+            
+        # Clear any existing tags
+        self.text_widget.tag_remove("search", "1.0", "end")
+        
+        # Configure search options
+        kwargs = {
+            "forwards": forwards,
+            "nocase": not self.case_sensitive_var.get()
+        }
+        
+        # Perform the search
+        pos = self.text_widget.search(search_text, start_index, "end", **kwargs)
+        
+        if not pos and self.wrap_around_var.get():
+            # If not found and wrap is enabled, search from the beginning/end
+            pos = self.text_widget.search(search_text, 
+                "1.0" if forwards else "end",
+                "end" if forwards else "1.0",
+                **kwargs)
+        
+        if pos:
+            # Calculate end index
+            end_pos = f"{pos}+{len(search_text)}c"
+            
+            # Highlight the found text
+            self.text_widget.tag_add("search", pos, end_pos)
+            self.text_widget.tag_config("search", background="yellow", foreground="black")
+            
+            # Ensure the found text is visible
+            self.text_widget.see(pos)
+            
+            # Update status
+            self.status_label.configure(text=f"Found match at position {pos}")
+            return pos
+        else:
+            self.status_label.configure(text="No matches found")
+            return None
+            
+    def find_next(self):
+        # Start search from current insert position
+        current_pos = self.text_widget.index("insert")
+        self.find_text(current_pos, forwards=True)
+        
+    def find_previous(self):
+        # Start search from current insert position
+        current_pos = self.text_widget.index("insert")
+        self.find_text(current_pos, forwards=False)
+        
+    def replace_current(self):
+        # Get the current selection if it matches our search
+        try:
+            selection_start = self.text_widget.index("sel.first")
+            selection_end = self.text_widget.index("sel.last")
+            selected_text = self.text_widget.get(selection_start, selection_end)
+            
+            if selected_text == self.find_var.get():
+                # Replace the selection
+                self.text_widget.delete(selection_start, selection_end)
+                self.text_widget.insert(selection_start, self.replace_var.get())
+                self.status_label.configure(text=f"Replaced text at position {selection_start}")
+                
+                # Find next occurrence
+                self.find_next()
+            else:
+                self.status_label.configure(text="No matching text selected")
+        except tkinter.TclError:
+            self.status_label.configure(text="No text selected")
+            
+    def replace_all(self):
+        search_text = self.find_var.get()
+        replace_text = self.replace_var.get()
+        
+        if not search_text:
+            self.status_label.configure(text="Please enter text to search")
+            return
+            
+        # Start from the beginning
+        current_pos = "1.0"
+        count = 0
+        
+        while True:
+            current_pos = self.text_widget.search(
+                search_text, current_pos, "end",
+                nocase=not self.case_sensitive_var.get()
+            )
+            
+            if not current_pos:
+                break
+                
+            # Calculate end position
+            end_pos = f"{current_pos}+{len(search_text)}c"
+            
+            # Replace text
+            self.text_widget.delete(current_pos, end_pos)
+            self.text_widget.insert(current_pos, replace_text)
+            
+            # Move to position after replacement
+            current_pos = f"{current_pos}+{len(replace_text)}c"
+            count += 1
+            
+        self.status_label.configure(text=f"Replaced {count} occurrence{'s' if count != 1 else ''}")
+
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -455,6 +767,7 @@ class EdgeTTSApp(ctk.CTk):
         self.bind("<space>", self.handle_space_key)              # Space to play/pause
         self.bind("<Escape>", lambda e: self.on_stop())          # Esc to stop
         self.bind("<Control-q>", self.on_closing)                # Ctrl+Q to quit
+        self.bind("<Control-f>", lambda e: self.show_find_replace())  # Ctrl+F to find/replace
         
         # Function to get header color based on theme
         self.get_header_color = lambda: COLORS["header_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["header_light"]
@@ -521,6 +834,19 @@ class EdgeTTSApp(ctk.CTk):
         )
         header_label.grid(row=0, column=0, sticky="w")
 
+        # Find & Replace button
+        self.find_replace_button = ctk.CTkButton(
+            header_frame,
+            text=f"{ICONS['FIND']} Find & Replace",
+            width=120,
+            height=32,
+            command=self.show_find_replace,
+            font=ctk.CTkFont(size=13),
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["primary"]
+        )
+        self.find_replace_button.grid(row=0, column=1, padx=10)
+
         # Load file button with improved styling
         self.load_file_button = ctk.CTkButton(
             header_frame,
@@ -532,7 +858,7 @@ class EdgeTTSApp(ctk.CTk):
             fg_color=COLORS["secondary"],
             hover_color=COLORS["primary"]
         )
-        self.load_file_button.grid(row=0, column=2, padx=(10, 0))
+        self.load_file_button.grid(row=0, column=2, padx=(0, 10))
 
         # Text input with modern styling
         self.text_input = ctk.CTkTextbox(
@@ -1667,6 +1993,10 @@ class EdgeTTSApp(ctk.CTk):
                 self.on_pause_resume()
         else:
             self.on_speak()
+
+    def show_find_replace(self, event=None):
+        """Show the find and replace dialog"""
+        FindReplaceDialog(self, self.text_input)
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
