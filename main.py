@@ -243,32 +243,38 @@ class EdgeTTSApp(ctk.CTk):
         # Create sidebar frame with widgets
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=10)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew", padx=10, pady=10)
-        self.sidebar_frame.grid_rowconfigure(2, weight=1)  # Make text frame row expandable
+        self.sidebar_frame.grid_rowconfigure(1, weight=1)  # Adjust row weight for text frame
         self.sidebar_frame.grid_columnconfigure(0, weight=1)
+
+        # Create header frame for logo and theme button
+        header_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        header_frame.grid_columnconfigure(1, weight=1)  # Make space between logo and button expandable
 
         # App logo/name
         self.logo_label = ctk.CTkLabel(
-            self.sidebar_frame, 
+            header_frame, 
             text=WINDOW_TITLE,
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color=COLORS["primary"]
         )
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        self.logo_label.grid(row=0, column=0, sticky="w")
 
-        # Theme toggle in sidebar
+        # Theme toggle button next to logo
         self.theme_button = ctk.CTkButton(
-            self.sidebar_frame,
+            header_frame,
             text=f"{ICONS['THEME']} Toggle Theme",
             command=self.toggle_theme,
             fg_color="transparent",
             border_width=1,
-            text_color=("gray10", "gray90")
+            text_color=("gray10", "gray90"),
+            width=120
         )
-        self.theme_button.grid(row=1, column=0, padx=20, pady=10)
+        self.theme_button.grid(row=0, column=1, sticky="e")
 
         # Text input section in sidebar
         text_frame = ctk.CTkFrame(self.sidebar_frame, corner_radius=10)
-        text_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        text_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
         text_frame.grid_columnconfigure(0, weight=1)
         text_frame.grid_rowconfigure(1, weight=1)  # Make text input row expandable
 
