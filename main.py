@@ -36,7 +36,9 @@ COLORS = {
     "background_light": "#F5F5F5",
     "background_dark": "#1E1E1E",
     "text_light": "#2D2D2D",
-    "text_dark": "#FFFFFF"
+    "text_dark": "#FFFFFF",
+    "header_light": "#0078D4",  # Primary color for light mode
+    "header_dark": "#4CC2FF"    # Lighter blue for dark mode
 }
 
 # Icons (Unicode)
@@ -244,6 +246,9 @@ class EdgeTTSApp(ctk.CTk):
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
 
+        # Function to get header color based on theme
+        self.get_header_color = lambda: COLORS["header_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["header_light"]
+
         # Audio playback state
         self.is_paused = False
         self.current_audio_file = None
@@ -270,7 +275,7 @@ class EdgeTTSApp(ctk.CTk):
             header_frame, 
             text=WINDOW_TITLE,
             font=ctk.CTkFont(size=20, weight="bold"),
-            text_color=COLORS["primary"]
+            text_color=self.get_header_color()
         )
         self.logo_label.grid(row=0, column=0, sticky="w")
 
@@ -302,7 +307,7 @@ class EdgeTTSApp(ctk.CTk):
             header_frame,
             text=f"{ICONS['TEXT']} Text Input",
             font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
+            text_color=self.get_header_color()
         )
         header_label.grid(row=0, column=0, sticky="w")
 
@@ -811,27 +816,35 @@ class EdgeTTSApp(ctk.CTk):
             return False
 
     def _set_speaking_state(self, speaking: bool):
+        """Set the UI state for speaking/not speaking"""
         self.is_speaking = speaking
         self.stop_requested.clear()
         self.is_paused = False
 
         if speaking:
+            # Hide speak and save buttons
             self.speak_button.grid_remove()
             self.save_button.grid_remove()
+            
+            # Show stop and pause buttons
             self.stop_button.grid(row=0, column=0, sticky="ew", padx=5)
             self.pause_button.grid(row=0, column=1, sticky="ew", padx=5)
-            self.speak_button.configure(state="disabled")
-            self.save_button.configure(state="disabled")
+            
+            # Disable voice selection
             self.voice_combobox.configure(state="disabled")
         else:
+            # Hide stop and pause buttons
             self.stop_button.grid_remove()
             self.pause_button.grid_remove()
+            
+            # Show speak and save buttons
             self.speak_button.grid(row=0, column=0, sticky="ew", padx=5)
-            self.save_button.grid(row=0, column=2, sticky="ew", padx=5)
-            self.speak_button.configure(state="normal")
-            self.save_button.configure(state="normal")
+            self.save_button.grid(row=0, column=1, sticky="ew", padx=5)
+            
+            # Enable voice selection
             self.voice_combobox.configure(state="normal")
-            self.update_idletasks()
+            
+        self.update_idletasks()
 
     def get_selected_voice_short_name(self):
         selected_display_name = self.voice_combobox.get()
@@ -846,13 +859,13 @@ class EdgeTTSApp(ctk.CTk):
         voice_frame.grid_columnconfigure(0, weight=1)
 
         # Voice selection header with icon and modern font
-        header_label = ctk.CTkLabel(
+        self.voice_selection_header = ctk.CTkLabel(
             voice_frame,
             text=f"{ICONS['VOICE']} Voice Selection",
             font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
+            text_color=self.get_header_color()
         )
-        header_label.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
+        self.voice_selection_header.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
         # Voice selection container
         selection_frame = ctk.CTkFrame(voice_frame, fg_color="transparent")
@@ -936,25 +949,25 @@ class EdgeTTSApp(ctk.CTk):
         controls_frame.grid_columnconfigure((0, 1), weight=1)
 
         # Controls header
-        header_label = ctk.CTkLabel(
+        self.controls_header = ctk.CTkLabel(
             controls_frame,
             text=f"{ICONS['MICROPHONE']} Controls",
             font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
+            text_color=self.get_header_color()
         )
-        header_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 5))
+        self.controls_header.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(10, 5))
 
         # Button container
-        button_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        button_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10))
-        button_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        self.button_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        self.button_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10))
+        self.button_frame.grid_columnconfigure((0, 1), weight=1)
 
         # Modern button styling
         button_font = ctk.CTkFont(size=14, weight="bold")
         
         # Speak button with hover animation
         self.speak_button = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text=f"{ICONS['PLAY']} Speak",
             command=self.on_speak,
             font=button_font,
@@ -965,9 +978,9 @@ class EdgeTTSApp(ctk.CTk):
         )
         self.speak_button.grid(row=0, column=0, sticky="ew", padx=5)
 
-        # Stop button (initially hidden)
+        # Stop button
         self.stop_button = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text=f"{ICONS['STOP']} Stop",
             command=self.on_stop,
             font=button_font,
@@ -977,9 +990,9 @@ class EdgeTTSApp(ctk.CTk):
             corner_radius=8
         )
 
-        # Pause/Resume button (initially hidden)
+        # Pause/Resume button
         self.pause_button = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text=f"{ICONS['PAUSE']} Pause",
             command=self.on_pause_resume,
             font=button_font,
@@ -991,7 +1004,7 @@ class EdgeTTSApp(ctk.CTk):
 
         # Save button with modern styling
         self.save_button = ctk.CTkButton(
-            button_frame,
+            self.button_frame,
             text=f"{ICONS['SAVE']} Save Audio",
             command=self.on_save_as,
             font=button_font,
@@ -1000,7 +1013,11 @@ class EdgeTTSApp(ctk.CTk):
             hover_color="#00A080",
             corner_radius=8
         )
-        self.save_button.grid(row=0, column=2, sticky="ew", padx=5)
+        self.save_button.grid(row=0, column=1, sticky="ew", padx=5)
+
+        # Initially hide stop and pause buttons
+        self.stop_button.grid_remove()
+        self.pause_button.grid_remove()
 
         # Add playback controls frame
         playback_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
@@ -1051,17 +1068,17 @@ class EdgeTTSApp(ctk.CTk):
     def setup_status_section(self):
         """Setup status section with modern visualization"""
         status_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        status_frame.grid(row=3, column=0, sticky="new", padx=10, pady=5)  # Changed row to 3 since controls now use row 2
+        status_frame.grid(row=3, column=0, sticky="new", padx=10, pady=5)
         status_frame.grid_columnconfigure(0, weight=1)
 
         # Status header
-        header_label = ctk.CTkLabel(
+        self.status_header = ctk.CTkLabel(
             status_frame,
             text=f"{ICONS['STATUS']} Status Information",
             font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
+            text_color=self.get_header_color()
         )
-        header_label.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
+        self.status_header.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
 
         # Status container
         info_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
@@ -1113,6 +1130,19 @@ class EdgeTTSApp(ctk.CTk):
             ctk.set_appearance_mode("Light")
         else:
             ctk.set_appearance_mode("Dark")
+        
+        # Update header colors
+        header_color = self.get_header_color()
+        self.logo_label.configure(text_color=header_color)
+        
+        # Update all section headers
+        for widget in [
+            self.voice_selection_header,
+            self.controls_header,
+            self.status_header
+        ]:
+            if widget:
+                widget.configure(text_color=header_color)
 
     def update_text_stats(self, event):
         """Update both word and character count labels"""
