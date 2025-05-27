@@ -242,15 +242,24 @@ class EdgeTTSApp(ctk.CTk):
 
         self.voice_combobox = ctk.CTkComboBox(
             self.voice_selection_frame,
-            values=self.display_voices_full,
-            state="readonly",
-            width=400,  # adjust as needed
+            values=["Loading voices..."],  # Start with loading message
+            state="disabled",  # Start disabled until voices are loaded
+            width=400,
             command=self.on_voice_selected_from_combobox
         )
         self.voice_combobox.pack(fill="x", expand=True)
         self.voice_combobox.set("Loading voices...")
-        # Attach scrollable dropdown to the combobox
-        self.voice_dropdown = CTkScrollableDropdown(self.voice_combobox, values=self.display_voices_full, height=300)
+        
+        # Initialize the scrollable dropdown with autocomplete
+        self.voice_dropdown = CTkScrollableDropdown(
+            self.voice_combobox,
+            values=["Loading voices..."],  # Start with loading message
+            command=self.on_voice_selected_from_dropdown,
+            autocomplete=True,
+            justify="left",
+            button_height=30,
+            height=200
+        )
 
         # --- Controls ---
         self.controls_frame = ctk.CTkFrame(self.main_frame)
@@ -312,19 +321,32 @@ class EdgeTTSApp(ctk.CTk):
 
 
     def update_voice_combobox_post_load(self):
+        """Update the combobox with loaded voices"""
         if self.display_voices_full:
+            # Update the combobox values
             self.voice_combobox.configure(values=self.display_voices_full)
-            # Update scrollable dropdown values as well
+            
+            # Update the dropdown values
             self.voice_dropdown.configure(values=self.display_voices_full)
-            default_selection = next((v for v in self.display_voices_full if DEFAULT_VOICE in v), self.display_voices_full[0])
-            self.voice_combobox.set(default_selection)
-            self.update_status("Voices loaded. Ready.")
+            
+            # Set default voice if available, otherwise use first voice
+            default_voice = next((v for v in self.display_voices_full if DEFAULT_VOICE in v), self.display_voices_full[0])
+            self.voice_combobox.set(default_voice)
+            
+            # Enable the combobox and buttons
+            self.voice_combobox.configure(state="normal")
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
+            self.update_status("Voices loaded. Ready.")
         else:
-            self.voice_combobox.configure(values=["No voices found"])
-            self.voice_dropdown.configure(values=["No voices found"])
-            self.voice_combobox.set("No voices found")
+            # No voices found - set appropriate messages
+            no_voices_msg = "No voices found"
+            self.voice_combobox.configure(values=[no_voices_msg])
+            self.voice_dropdown.configure(values=[no_voices_msg])
+            self.voice_combobox.set(no_voices_msg)
+            self.voice_combobox.configure(state="disabled")
+            self.speak_button.configure(state="disabled")
+            self.save_button.configure(state="disabled")
             self.update_status("No voices found.")
 
     def on_voice_selected_from_combobox(self, choice):
@@ -334,6 +356,12 @@ class EdgeTTSApp(ctk.CTk):
         # will retrieve the current selection.
         # print(f"Voice selected: {choice}")
         pass
+
+    def on_voice_selected_from_dropdown(self, choice):
+        """Callback for when a voice is selected from the dropdown"""
+        self.voice_combobox.set(choice)  # Update the combobox text
+        # The regular combobox callback will handle the rest
+        self.on_voice_selected_from_combobox(choice)
 
     def update_status(self, message):
         self.status_label.configure(text=message)
