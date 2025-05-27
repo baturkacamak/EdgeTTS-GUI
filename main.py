@@ -15,6 +15,51 @@ import tkinter.ttk as ttk
 import pygame  # For advanced audio playback
 from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
 from PIL import Image, ImageTk  # For icon support
+import random
+
+# Network retry configuration
+MAX_RETRIES = 3
+INITIAL_RETRY_DELAY = 1  # seconds
+MAX_RETRY_DELAY = 10  # seconds
+
+async def retry_async_operation(operation, *args, **kwargs):
+    """
+    Retry an async operation with exponential backoff.
+    
+    Args:
+        operation: The async function to retry
+        *args: Positional arguments for the operation
+        **kwargs: Keyword arguments for the operation
+        
+    Returns:
+        The result of the operation if successful
+        
+    Raises:
+        The last encountered exception if all retries fail
+    """
+    last_exception = None
+    delay = INITIAL_RETRY_DELAY
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            return await operation(*args, **kwargs)
+        except (edge_tts.exceptions.NoConnectionException,
+                edge_tts.exceptions.CommunicationError,
+                ConnectionError,
+                TimeoutError) as e:
+            last_exception = e
+            if attempt < MAX_RETRIES - 1:  # Don't sleep on the last attempt
+                # Calculate exponential backoff with jitter
+                jitter = random.uniform(0, 0.1 * delay)
+                sleep_time = min(delay + jitter, MAX_RETRY_DELAY)
+                await asyncio.sleep(sleep_time)
+                delay *= 2  # Exponential backoff
+            continue
+        except Exception as e:
+            # Don't retry on non-network errors
+            raise e
+
+    raise last_exception
 
 # --- Global Variables ---
 WINDOW_TITLE = "🎙️ Edge TTS Studio"  # More professional name
@@ -601,12 +646,18 @@ class EdgeTTSApp(ctk.CTk):
             self.after(0, self.progress_bar.set, 0.3)
 
             async def get_voices_async():
-                return await edge_tts.VoicesManager.create()
+                voices_manager = await edge_tts.VoicesManager.create()
+                return voices_manager
 
-            self.after(0, self.update_detailed_status, "Connecting to Microsoft Edge TTS service...", cache_info)
-            self.after(0, self.progress_bar.set, 0.4)
-            
-            voices_manager = asyncio.run(get_voices_async())
+            async def load_voices_with_retry():
+                self.after(0, self.update_detailed_status, "Connecting to Microsoft Edge TTS service...", cache_info)
+                self.after(0, self.progress_bar.set, 0.4)
+                
+                voices_manager = await retry_async_operation(get_voices_async)
+                return voices_manager
+
+            # Run the async operation with retry
+            voices_manager = asyncio.run(load_voices_with_retry())
             self.voices_list_full = voices_manager.voices
             
             self.after(0, self.update_detailed_status, "Saving to cache...", cache_info)
@@ -1010,7 +1061,6 @@ class EdgeTTSApp(ctk.CTk):
             rate = self.rate_slider.get()
             pitch = self.pitch_slider.get()
 
-            # Create Communicate instance with rate and pitch adjustments
             # Rate needs to be a percentage string (e.g., "+0%", "+50%", "-50%")
             rate_percent = int((rate - 1.0) * 100)  # Convert multiplier to percentage difference
             communicate = edge_tts.Communicate(
@@ -1019,8 +1069,11 @@ class EdgeTTSApp(ctk.CTk):
                 rate=f"{rate_percent:+d}%",  # Format: +0%, +50%, -50%
                 pitch=f"{int(pitch):+d}Hz"  # Format: +0Hz, +10Hz, etc.
             )
-            
-            asyncio.run(communicate.save(output_filepath))
+
+            async def synthesize_with_retry():
+                await retry_async_operation(communicate.save, output_filepath)
+
+            asyncio.run(synthesize_with_retry())
 
             if self.stop_requested.is_set(): # Check again after potentially long synthesis
                 self.after(0, self.update_detailed_status, "Operation stopped after synthesis, before playback/save completion.")
@@ -1555,8 +1608,11 @@ class EdgeTTSApp(ctk.CTk):
                     pitch=f"{int(pitch):+d}Hz"
                 )
 
-                # Save and play preview
-                asyncio.run(communicate.save(preview_file))
+                # Save and play preview with retry
+                async def preview_with_retry():
+                    await retry_async_operation(communicate.save, preview_file)
+
+                asyncio.run(preview_with_retry())
                 
                 # Initialize mixer for preview if needed
                 if pygame.mixer.get_init():
