@@ -14,9 +14,26 @@ WINDOW_TITLE = "Edge TTS GUI"
 WINDOW_SIZE = "700x650"
 DEFAULT_APPEARANCE_MODE = "System"
 DEFAULT_COLOR_THEME = "blue"
-TEMP_AUDIO_FILENAME = "temp_audio_edge_tts.mp3"
+TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp files
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
+
+# Supported audio formats and their extensions
+SUPPORTED_FORMATS = [
+    ("MP3 audio file", "*.mp3"),
+    ("WAV audio file", "*.wav"),
+    ("OGG audio file", "*.ogg"),
+    ("M4A audio file", "*.m4a"),
+    ("All files", "*.*")
+]
+
+# Format to MIME type mapping
+FORMAT_MIME_TYPES = {
+    ".mp3": "audio/mp3",
+    ".wav": "audio/wav",
+    ".ogg": "audio/ogg",
+    ".m4a": "audio/m4a"
+}
 
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
@@ -77,7 +94,7 @@ class EdgeTTSApp(ctk.CTk):
         self.stop_button = ctk.CTkButton(self.controls_frame, text="Stop", command=self.on_stop, fg_color="red", hover_color="darkred")
         # Stop button will be packed/unpacked dynamically
 
-        self.save_button = ctk.CTkButton(self.controls_frame, text="Save As MP3", command=self.on_save_as)
+        self.save_button = ctk.CTkButton(self.controls_frame, text="Save Audio", command=self.on_save_as)
         self.save_button.pack(side="left", padx=5, expand=True, fill="x")
 
         # --- Status Bar ---
@@ -173,14 +190,14 @@ class EdgeTTSApp(ctk.CTk):
             return None
         return self.voice_map.get(selected_display_name)
 
-    def _synthesize_speech(self, text, voice_short_name, output_filepath):
+    def _synthesize_speech(self, text, voice_short_name, output_filepath, mime_type="audio/mp3"):
         try:
             if self.stop_requested.is_set():
                 self.after(0, self.update_status, "Operation stopped before synthesis.")
                 return False
 
             communicate = edge_tts.Communicate(text, voice_short_name)
-            asyncio.run(communicate.save(output_filepath))
+            asyncio.run(communicate.save(output_filepath, mime_type=mime_type))
 
             if self.stop_requested.is_set(): # Check again after potentially long synthesis
                 self.after(0, self.update_status, "Operation stopped after synthesis, before playback/save completion.")
@@ -287,23 +304,25 @@ class EdgeTTSApp(ctk.CTk):
 
         filepath = tkinter.filedialog.asksaveasfilename(
             defaultextension=".mp3",
-            filetypes=[("MP3 audio file", "*.mp3"), ("All files", "*.*")],
-            title="Save Speech As MP3"
+            filetypes=SUPPORTED_FORMATS,
+            title="Save Speech As Audio"
         )
         if not filepath:
             self.update_status("Save cancelled. Ready.")
             return
+
+        # Get the file extension and corresponding MIME type
+        file_ext = os.path.splitext(filepath)[1].lower()
+        mime_type = FORMAT_MIME_TYPES.get(file_ext, "audio/mp3")  # Default to MP3 if unknown
 
         self._set_speaking_state(True) # Use speaking state to manage buttons
         self.update_status(f"Synthesizing and saving to {os.path.basename(filepath)}...")
 
         def synthesis_thread():
             try:
-                success = self._synthesize_speech(text, selected_voice_short_name, filepath)
+                success = self._synthesize_speech(text, selected_voice_short_name, filepath, mime_type)
                 if self.stop_requested.is_set():
                     self.after(0, self.update_status, "Save operation stopped.")
-                    # Optionally delete partially saved file if stop is aggressive
-                    # if os.path.exists(filepath): os.remove(filepath)
                     return
 
                 if success:
@@ -311,7 +330,6 @@ class EdgeTTSApp(ctk.CTk):
             finally:
                 if not self.stop_requested.is_set():
                     self.after(0, lambda: self._set_speaking_state(False))
-                # If stop was requested, on_stop handles resetting the UI.
 
         threading.Thread(target=synthesis_thread, daemon=True).start()
 
