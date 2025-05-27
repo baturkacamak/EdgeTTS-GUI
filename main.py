@@ -1116,6 +1116,10 @@ class EdgeTTSApp(ctk.CTk):
         status_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
         status_frame.grid(row=3, column=0, sticky="new", padx=10, pady=5)
         status_frame.grid_columnconfigure(0, weight=1)
+        
+        # Set a maximum width for the status frame
+        status_frame.grid_propagate(False)  # Prevent the frame from expanding
+        status_frame.configure(width=400, height=150)  # Fixed size for status frame
 
         # Status header
         self.status_header = ctk.CTkLabel(
@@ -1131,15 +1135,20 @@ class EdgeTTSApp(ctk.CTk):
         info_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
         info_frame.grid_columnconfigure(0, weight=1)
 
-        # Status labels with modern styling
+        # Status labels with modern styling and text wrapping
         label_font = ctk.CTkFont(size=13)
+        
+        # Calculate wraplength based on frame width minus padding
+        wrap_length = 380  # status frame width (400) minus padding (20)
         
         self.loading_status = ctk.CTkLabel(
             info_frame,
             text=f"{ICONS['SPEAKER']} Status: Initializing...",
             anchor="w",
             font=label_font,
-            text_color=("gray20", "gray80")
+            text_color=("gray20", "gray80"),
+            wraplength=wrap_length,
+            justify="left"
         )
         self.loading_status.grid(row=0, column=0, sticky="w", pady=2)
 
@@ -1148,7 +1157,9 @@ class EdgeTTSApp(ctk.CTk):
             text=f"{ICONS['CACHE']} Cache: Checking...",
             anchor="w",
             font=label_font,
-            text_color=("gray20", "gray80")
+            text_color=("gray20", "gray80"),
+            wraplength=wrap_length,
+            justify="left"
         )
         self.cache_status.grid(row=1, column=0, sticky="w", pady=2)
 
@@ -1157,7 +1168,9 @@ class EdgeTTSApp(ctk.CTk):
             text=f"{ICONS['COUNT']} Voices: -",
             anchor="w",
             font=label_font,
-            text_color=("gray20", "gray80")
+            text_color=("gray20", "gray80"),
+            wraplength=wrap_length,
+            justify="left"
         )
         self.voice_count.grid(row=2, column=0, sticky="w", pady=2)
 
@@ -1166,7 +1179,9 @@ class EdgeTTSApp(ctk.CTk):
             text=f"{ICONS['CLOCK']} Last Updated: -",
             anchor="w",
             font=label_font,
-            text_color=("gray20", "gray80")
+            text_color=("gray20", "gray80"),
+            wraplength=wrap_length,
+            justify="left"
         )
         self.last_updated.grid(row=3, column=0, sticky="w", pady=2)
 
