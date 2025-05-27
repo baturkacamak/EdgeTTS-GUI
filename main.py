@@ -1119,7 +1119,7 @@ class EdgeTTSApp(ctk.CTk):
         
         # Set a maximum width for the status frame
         status_frame.grid_propagate(False)  # Prevent the frame from expanding
-        status_frame.configure(width=400, height=150)  # Fixed size for status frame
+        status_frame.configure(width=400, height=200)  # Increased height to fit content better
 
         # Status header
         self.status_header = ctk.CTkLabel(
