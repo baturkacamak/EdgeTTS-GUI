@@ -236,6 +236,105 @@ LOCALE_NAME_MAP = {
     "zu-ZA": "Zulu (South Africa)",
 }
 
+# Preview texts for different languages
+PREVIEW_TEXTS = {
+    # Germanic languages
+    "en": {"rate": "This is {speed}× speed", "pitch": "Testing pitch adjustment"},  # English
+    "de": {"rate": "Dies ist {speed}× Geschwindigkeit", "pitch": "Test der Tonhöhenanpassung"},  # German
+    "nl": {"rate": "Dit is {speed}× snelheid", "pitch": "Toonhoogte aanpassing testen"},  # Dutch
+    "af": {"rate": "Dit is {speed}× spoed", "pitch": "Toets toonhoogte aanpassing"},  # Afrikaans
+    "is": {"rate": "Þetta er {speed}× hraði", "pitch": "Prófun tónhæðarbreytingar"},  # Icelandic
+    
+    # Romance languages
+    "fr": {"rate": "Ceci est la vitesse {speed}×", "pitch": "Test d'ajustement de la hauteur"},  # French
+    "es": {"rate": "Esta es velocidad {speed}×", "pitch": "Prueba de ajuste de tono"},  # Spanish
+    "pt": {"rate": "Esta é a velocidade {speed}×", "pitch": "Teste de ajuste de tom"},  # Portuguese
+    "it": {"rate": "Questa è velocità {speed}×", "pitch": "Test regolazione tono"},  # Italian
+    "ro": {"rate": "Aceasta este viteza {speed}×", "pitch": "Test ajustare înălțime"},  # Romanian
+    "ca": {"rate": "Aquesta és la velocitat {speed}×", "pitch": "Prova d'ajust de to"},  # Catalan
+    "gl": {"rate": "Esta é a velocidade {speed}×", "pitch": "Proba de axuste de ton"},  # Galician
+    
+    # Slavic languages
+    "ru": {"rate": "Это скорость {speed}×", "pitch": "Проверка настройки высоты"},  # Russian
+    "pl": {"rate": "To jest prędkość {speed}×", "pitch": "Test regulacji wysokości"},  # Polish
+    "cs": {"rate": "Toto je rychlost {speed}×", "pitch": "Test nastavení výšky"},  # Czech
+    "uk": {"rate": "Це швидкість {speed}×", "pitch": "Тест налаштування висоти"},  # Ukrainian
+    "bg": {"rate": "Това е скорост {speed}×", "pitch": "Тест за настройка на височината"},  # Bulgarian
+    "hr": {"rate": "Ovo je brzina {speed}×", "pitch": "Test podešavanja visine tona"},  # Croatian
+    "sr": {"rate": "Ово је брзина {speed}×", "pitch": "Тест подешавања висине тона"},  # Serbian
+    "sk": {"rate": "Toto je rýchlosť {speed}×", "pitch": "Test nastavenia výšky"},  # Slovak
+    "sl": {"rate": "To je hitrost {speed}×", "pitch": "Test nastavitve višine"},  # Slovenian
+    "mk": {"rate": "Ова е брзина {speed}×", "pitch": "Тест за прилагодување на висината"},  # Macedonian
+    
+    # Baltic languages
+    "lt": {"rate": "Tai yra {speed}× greitis", "pitch": "Aukščio reguliavimo testas"},  # Lithuanian
+    "lv": {"rate": "Šis ir {speed}× ātrums", "pitch": "Augstuma regulēšanas tests"},  # Latvian
+    "et": {"rate": "See on {speed}× kiirus", "pitch": "Helikõrguse reguleerimise test"},  # Estonian
+    
+    # East Asian languages
+    "zh": {"rate": "这是{speed}倍速", "pitch": "音调调整测试"},  # Chinese
+    "ja": {"rate": "これは{speed}倍速です", "pitch": "ピッチ調整テスト"},  # Japanese
+    "ko": {"rate": "이것은 {speed}배속입니다", "pitch": "음높이 조정 테스트"},  # Korean
+    
+    # Southeast Asian languages
+    "vi": {"rate": "Đây là tốc độ {speed}×", "pitch": "Kiểm tra điều chỉnh cao độ"},  # Vietnamese
+    "th": {"rate": "นี่คือความเร็ว {speed}×", "pitch": "ทดสอบการปรับระดับเสียง"},  # Thai
+    "id": {"rate": "Ini adalah kecepatan {speed}×", "pitch": "Tes penyesuaian nada"},  # Indonesian
+    "ms": {"rate": "Ini adalah kelajuan {speed}×", "pitch": "Ujian pelarasan pic"},  # Malay
+    "fil": {"rate": "Ito ay bilis na {speed}×", "pitch": "Pagsubok sa pagsasaayos ng pitch"},  # Filipino
+    "km": {"rate": "នេះគឺជាល្បឿន {speed}×", "pitch": "ការសាកល្បងការកែសម្រួលកម្ពស់សំឡេង"},  # Khmer
+    "my": {"rate": "ဤသည်မှာ {speed}× အမြန်နှုန်းဖြစ်သည်", "pitch": "အသံအမြင့်အနိမ့်ချိန်ညှိခြင်းစမ်းသပ်မှု"},  # Burmese
+    "lo": {"rate": "ນີ້ແມ່ນຄວາມໄວ {speed}×", "pitch": "ທົດສອບການປັບລະດັບສຽງ"},  # Lao
+    
+    # South Asian languages
+    "hi": {"rate": "यह {speed}× गति है", "pitch": "पिच समायोजन परीक्षण"},  # Hindi
+    "ta": {"rate": "இது {speed}× வேகம்", "pitch": "பிட்ச் சரிசெய்தல் சோதனை"},  # Tamil
+    "te": {"rate": "ఇది {speed}× వేగం", "pitch": "పిచ్ సర్దుబాటు పరీక్ష"},  # Telugu
+    "bn": {"rate": "এটি {speed}× গতি", "pitch": "পিচ সমন্বয় পরীক্ষা"},  # Bengali
+    "gu": {"rate": "આ {speed}× ગતિ છે", "pitch": "પિચ સમાયોજન પરીક્ષણ"},  # Gujarati
+    "kn": {"rate": "ಇದು {speed}× ವೇಗ", "pitch": "ಪಿಚ್ ಹೊಂದಾಣಿಕೆ ಪರೀಕ್ಷೆ"},  # Kannada
+    "ml": {"rate": "ഇത് {speed}× വേഗതയാണ്", "pitch": "പിച്ച് ക്രമീകരണ പരിശോധന"},  # Malayalam
+    "mr": {"rate": "ही {speed}× गती आहे", "pitch": "पिच समायोजन चाचणी"},  # Marathi
+    "pa": {"rate": "ਇਹ {speed}× ਗਤੀ ਹੈ", "pitch": "ਪਿੱਚ ਅਡਜਸਟਮੈਂਟ ਟੈਸਟ"},  # Punjabi
+    "si": {"rate": "මෙය {speed}× වේගයයි", "pitch": "පිච් සීරුමාරු කිරීමේ පරීක්ෂණය"},  # Sinhala
+    "ne": {"rate": "यो {speed}× गति हो", "pitch": "पिच समायोजन परीक्षण"},  # Nepali
+    
+    # Semitic languages
+    "ar": {"rate": "هذه السرعة {speed}×", "pitch": "اختبار ضبط درجة الصوت"},  # Arabic
+    "he": {"rate": "זוהי מהירות {speed}×", "pitch": "בדיקת כוונון גובה צליל"},  # Hebrew
+    
+    # Uralic languages
+    "fi": {"rate": "Tämä on {speed}× nopeus", "pitch": "Sävelkorkeuden säätötesti"},  # Finnish
+    "hu": {"rate": "Ez {speed}× sebesség", "pitch": "Hangmagasság beállítás teszt"},  # Hungarian
+    
+    # Turkic languages
+    "tr": {"rate": "Bu {speed}× hız", "pitch": "Perde ayarı testi"},  # Turkish
+    "az": {"rate": "Bu {speed}× sürətdir", "pitch": "Yüksəklik tənzimləmə testi"},  # Azerbaijani
+    "kk": {"rate": "Бұл {speed}× жылдамдық", "pitch": "Биіктікті реттеу сынағы"},  # Kazakh
+    "uz": {"rate": "Bu {speed}× tezlik", "pitch": "Balandlik sozlash testi"},  # Uzbek
+    
+    # Other European languages
+    "sq": {"rate": "Kjo është shpejtësi {speed}×", "pitch": "Test i rregullimit të tonit"},  # Albanian
+    "mt": {"rate": "Din hija veloċità {speed}×", "pitch": "Test tal-aġġustament tal-pitch"},  # Maltese
+    
+    # African languages
+    "am": {"rate": "ይህ {speed}× ፍጥነት ነው", "pitch": "የድምጽ ከፍታ ማስተካከያ ሙከራ"},  # Amharic
+    "sw": {"rate": "Hii ni kasi ya {speed}×", "pitch": "Jaribio la marekebisho ya sauti"},  # Swahili
+    "zu": {"rate": "Lesi isijuqo {speed}×", "pitch": "Ukuhlola ukuhlelwa kwephimbo"},  # Zulu
+    
+    # Other languages
+    "ps": {"rate": "دا {speed}× سرعت دی", "pitch": "د غږ لوړوالي ازموینه"},  # Pashto
+    "fa": {"rate": "این سرعت {speed}× است", "pitch": "آزمایش تنظیم زیر و بمی"},  # Persian
+    "ur": {"rate": "یہ {speed}× رفتار ہے", "pitch": "پچ ایڈجسٹمنٹ ٹیسٹ"},  # Urdu
+    "so": {"rate": "Kani waa xawaaraha {speed}×", "pitch": "Tijaabada hagaajinta codka"},  # Somali
+    "su": {"rate": "Ieu kacepetan {speed}×", "pitch": "Tés nyetel pitch"},  # Sundanese
+    "jv": {"rate": "Iki kacepetan {speed}×", "pitch": "Tés nyetel pitch"},  # Javanese
+    "iu": {"rate": "ᑖᓐᓇ {speed}× ᓱᑲᐃᑎᒋᔪᖅ", "pitch": "ᓂᐱᐅᑉ ᖁᑦᑎᓂᖓᑕ ᐋᖅᑭᒋᐊᕈᑎᖓᑕ ᖃᐅᔨᓴᕈᑎᖓ"},  # Inuktitut
+    
+    # Default fallback
+    "default": {"rate": "Speed test {speed}×", "pitch": "Pitch test"}
+}
+
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1152,6 +1251,17 @@ class EdgeTTSApp(ctk.CTk):
         self.rate_slider.grid(row=0, column=1, sticky="ew")
         self.rate_slider.set(1.0)  # Default rate
 
+        # Preview button for rate
+        self.rate_preview_btn = ctk.CTkButton(
+            rate_frame,
+            text="👂",
+            width=30,
+            height=24,
+            command=lambda: self.preview_settings("rate"),
+            font=ctk.CTkFont(size=12)
+        )
+        self.rate_preview_btn.grid(row=0, column=3, padx=(10, 0))
+
         # Pitch control
         pitch_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
         pitch_frame.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
@@ -1180,6 +1290,17 @@ class EdgeTTSApp(ctk.CTk):
         )
         self.pitch_slider.grid(row=0, column=1, sticky="ew")
         self.pitch_slider.set(0)  # Default pitch
+
+        # Preview button for pitch
+        self.pitch_preview_btn = ctk.CTkButton(
+            pitch_frame,
+            text="👂",
+            width=30,
+            height=24,
+            command=lambda: self.preview_settings("pitch"),
+            font=ctk.CTkFont(size=12)
+        )
+        self.pitch_preview_btn.grid(row=0, column=3, padx=(10, 0))
 
         # Bind progress bar click for seeking
         self.progress_bar.bind("<Button-1>", self.on_progress_click)
@@ -1315,6 +1436,107 @@ class EdgeTTSApp(ctk.CTk):
     def on_pitch_change(self, value):
         """Handle pitch slider change"""
         self.pitch_value_label.configure(text=f"±{int(value)} Hz")
+
+    def preview_settings(self, setting_type):
+        """Preview rate or pitch settings with a short sample."""
+        if self.is_speaking and not self.is_paused:
+            return  # Don't preview while speaking
+
+        # Store current main playback state
+        was_playing = False
+        current_pos = 0
+        if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
+            was_playing = True
+            current_pos = pygame.mixer.music.get_pos() / 1000.0
+            pygame.mixer.music.pause()
+
+        # Get the selected voice and determine language
+        selected_voice = self.get_selected_voice_short_name()
+        if not selected_voice:
+            return
+
+        # Find the voice in voices list to get its locale
+        voice_locale = "default"
+        for voice in self.voices_list_full:
+            if voice["Name"] == selected_voice:
+                # Extract main language code (e.g., "en-US" -> "en")
+                voice_locale = voice["Locale"].split("-")[0].lower()
+                break
+
+        # Get preview text in the appropriate language
+        preview_texts = PREVIEW_TEXTS.get(voice_locale, PREVIEW_TEXTS["default"])
+        
+        # Sample text based on what's being adjusted
+        if setting_type == "rate":
+            preview_text = preview_texts["rate"].format(speed=self.rate_slider.get())
+        else:  # pitch
+            preview_text = preview_texts["pitch"]
+
+        # Create temporary file for preview
+        preview_file = os.path.join(tempfile.gettempdir(), "preview_audio_edge_tts.mp3")
+
+        # Synthesize and play preview
+        if selected_voice:
+            try:
+                # Get current settings
+                rate = self.rate_slider.get()
+                pitch = self.pitch_slider.get()
+
+                # Convert rate to percentage
+                rate_percent = int((rate - 1.0) * 100)
+
+                # Create communicate instance for preview
+                communicate = edge_tts.Communicate(
+                    preview_text,
+                    selected_voice,
+                    rate=f"{rate_percent:+d}%",
+                    pitch=f"{int(pitch):+d}Hz"
+                )
+
+                # Save and play preview
+                asyncio.run(communicate.save(preview_file))
+                
+                # Initialize mixer for preview if needed
+                if pygame.mixer.get_init():
+                    pygame.mixer.quit()
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
+                pygame.mixer.music.load(preview_file)
+                pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
+                pygame.mixer.music.play()
+
+                # Wait for preview to finish
+                while pygame.mixer.get_init() and pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+
+                # Clean up preview file
+                pygame.mixer.quit()
+                if os.path.exists(preview_file):
+                    os.remove(preview_file)
+
+                # Resume main playback if it was playing
+                if was_playing and self.current_audio_file:
+                    pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
+                    pygame.mixer.music.load(self.current_audio_file)
+                    pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
+                    pygame.mixer.music.play()
+                    # Try to restore position
+                    try:
+                        pygame.mixer.music.set_pos(current_pos)
+                    except:
+                        pass  # Position restoration failed, continue from start
+
+            except Exception as e:
+                self.update_detailed_status(f"Preview error: {e}")
+                if was_playing:
+                    # Attempt to resume main playback on error
+                    try:
+                        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
+                        pygame.mixer.music.load(self.current_audio_file)
+                        pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
+                        pygame.mixer.music.play()
+                        pygame.mixer.music.set_pos(current_pos)
+                    except:
+                        pass
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
