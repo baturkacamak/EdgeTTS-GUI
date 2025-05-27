@@ -234,13 +234,6 @@ class EdgeTTSApp(ctk.CTk):
         self.text_input.pack(fill="x", expand=False)
 
         # --- Voice Search and Selection ---
-        self.voice_search_label = ctk.CTkLabel(self.main_frame, text="Search Voice:")
-        self.voice_search_label.pack(pady=(10, 0), anchor="w")
-
-        self.voice_search_entry = ctk.CTkEntry(self.main_frame, placeholder_text="Type to filter voices...")
-        self.voice_search_entry.pack(fill="x", pady=(0,5))
-        self.voice_search_entry.bind("<KeyRelease>", self.filter_voices)
-
         self.voice_selection_frame = ctk.CTkFrame(self.main_frame)
         self.voice_selection_frame.pack(pady=(0,10), fill="x")
 
@@ -282,7 +275,6 @@ class EdgeTTSApp(ctk.CTk):
         self.update_status("Loading voices...")
         self.speak_button.configure(state="disabled")
         self.save_button.configure(state="disabled")
-        self.voice_search_entry.configure(state="disabled")
         threading.Thread(target=self.load_voices_threaded, daemon=True).start()
 
     def load_voices_threaded(self):
@@ -334,28 +326,6 @@ class EdgeTTSApp(ctk.CTk):
             self.voice_dropdown.configure(values=["No voices found"])
             self.voice_combobox.set("No voices found")
             self.update_status("No voices found.")
-        self.voice_search_entry.configure(state="normal")
-
-    def filter_voices(self, event=None):
-        search_term = self.voice_search_entry.get().lower()
-        current_selection = self.voice_combobox.get()
-
-        if not search_term:
-            filtered_display_voices = self.display_voices_full
-        else:
-            filtered_display_voices = [
-                name for name in self.display_voices_full if search_term in name.lower()
-            ]
-
-        if not filtered_display_voices:
-            self.voice_combobox.configure(values=["No match found"])
-            self.voice_combobox.set("No match found")
-        else:
-            self.voice_combobox.configure(values=filtered_display_voices)
-            if current_selection in filtered_display_voices:
-                self.voice_combobox.set(current_selection)
-            elif filtered_display_voices: # Select first if current is not in filtered
-                self.voice_combobox.set(filtered_display_voices[0])
 
     def on_voice_selected_from_combobox(self, choice):
         # This callback is useful if you need to do something specific
@@ -405,7 +375,6 @@ class EdgeTTSApp(ctk.CTk):
             self.stop_button.pack(side="left", padx=5, expand=True, fill="x")
             self.speak_button.configure(state="disabled")
             self.save_button.configure(state="disabled")
-            self.voice_search_entry.configure(state="disabled")
             self.voice_combobox.configure(state="disabled")
         else:
             self.stop_button.pack_forget()
@@ -413,7 +382,6 @@ class EdgeTTSApp(ctk.CTk):
             self.save_button.pack(side="left", padx=5, expand=True, fill="x")
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
-            self.voice_search_entry.configure(state="normal")
             self.voice_combobox.configure(state="normal")
             self.update_idletasks() # Ensure UI updates layout changes
 
