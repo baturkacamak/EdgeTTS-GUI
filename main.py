@@ -265,6 +265,79 @@ class EdgeTTSApp(ctk.CTk):
         )
         self.theme_button.grid(row=1, column=0, padx=20, pady=10)
 
+        # Text input section in sidebar
+        text_frame = ctk.CTkFrame(self.sidebar_frame, corner_radius=10)
+        text_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        text_frame.grid_columnconfigure(0, weight=1)
+        text_frame.grid_rowconfigure(1, weight=1)
+
+        # Header frame with modern styling
+        header_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
+        header_frame.grid_columnconfigure(1, weight=1)
+
+        # Text input header with icon and modern font
+        header_label = ctk.CTkLabel(
+            header_frame,
+            text=f"{ICONS['TEXT']} Text Input",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=COLORS["primary"]
+        )
+        header_label.grid(row=0, column=0, sticky="w")
+
+        # Load file button with improved styling
+        self.load_file_button = ctk.CTkButton(
+            header_frame,
+            text=f"{ICONS['LOAD']} Load File",
+            width=120,
+            height=32,
+            command=self.on_load_file,
+            font=ctk.CTkFont(size=13),
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["primary"]
+        )
+        self.load_file_button.grid(row=0, column=2, padx=(10, 0))
+
+        # Text input with modern styling
+        self.text_input = ctk.CTkTextbox(
+            text_frame,
+            height=200,
+            wrap="word",
+            font=ctk.CTkFont(size=13, family="Segoe UI"),
+            border_width=2,
+            border_color=COLORS["primary"],
+            fg_color=("white", "gray10"),
+            text_color=("gray10", "white")
+        )
+        self.text_input.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        self.text_input.insert("1.0", DEFAULT_TEXT)
+
+        # Stats frame for word and character count
+        stats_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
+        stats_frame.grid(row=2, column=0, sticky="e", padx=10, pady=(0, 5))
+
+        # Word count label
+        self.word_count_label = ctk.CTkLabel(
+            stats_frame,
+            text="Words: 0",
+            font=ctk.CTkFont(size=12),
+            text_color=("gray40", "gray60")
+        )
+        self.word_count_label.grid(row=0, column=0, padx=(0, 15))
+
+        # Character count label
+        self.char_count_label = ctk.CTkLabel(
+            stats_frame,
+            text="Characters: 0",
+            font=ctk.CTkFont(size=12),
+            text_color=("gray40", "gray60")
+        )
+        self.char_count_label.grid(row=0, column=1)
+
+        # Bind text changes to update both counters
+        self.text_input.bind('<KeyRelease>', self.update_text_stats)
+        self.update_text_stats(None)  # Initial count
+
         # Create main content frame
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, rowspan=4, sticky="nsew", padx=(0, 10), pady=10)
@@ -280,7 +353,6 @@ class EdgeTTSApp(ctk.CTk):
         self.stop_requested = threading.Event()
 
         # Setup UI components
-        self.setup_text_input_section()
         self.setup_voice_selection()
         self.setup_controls()
         self.setup_status_section()
@@ -674,90 +746,6 @@ class EdgeTTSApp(ctk.CTk):
             return None
         return self.voice_map.get(selected_display_name)
 
-    def setup_text_input_section(self):
-        """Setup the text input section with modern styling"""
-        text_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        text_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
-        text_frame.grid_columnconfigure(0, weight=1)
-        text_frame.grid_rowconfigure(1, weight=1)
-
-        # Header frame with modern styling
-        header_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 0))
-        header_frame.grid_columnconfigure(1, weight=1)
-
-        # Text input header with icon and modern font
-        header_label = ctk.CTkLabel(
-            header_frame,
-            text=f"{ICONS['TEXT']} Text Input",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
-        )
-        header_label.grid(row=0, column=0, sticky="w")
-
-        # Load file button with improved styling
-        self.load_file_button = ctk.CTkButton(
-            header_frame,
-            text=f"{ICONS['LOAD']} Load File",
-            width=120,
-            height=32,
-            command=self.on_load_file,
-            font=ctk.CTkFont(size=13),
-            fg_color=COLORS["secondary"],
-            hover_color=COLORS["primary"]
-        )
-        self.load_file_button.grid(row=0, column=2, padx=(10, 0))
-
-        # Text input with modern styling
-        self.text_input = ctk.CTkTextbox(
-            text_frame,
-            height=200,
-            wrap="word",
-            font=ctk.CTkFont(size=13, family="Segoe UI"),
-            border_width=2,
-            border_color=COLORS["primary"],
-            fg_color=("white", "gray10"),
-            text_color=("gray10", "white")
-        )
-        self.text_input.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        self.text_input.insert("1.0", DEFAULT_TEXT)
-
-        # Stats frame for word and character count
-        stats_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
-        stats_frame.grid(row=2, column=0, sticky="e", padx=10, pady=(0, 5))
-
-        # Word count label
-        self.word_count_label = ctk.CTkLabel(
-            stats_frame,
-            text="Words: 0",
-            font=ctk.CTkFont(size=12),
-            text_color=("gray40", "gray60")
-        )
-        self.word_count_label.grid(row=0, column=0, padx=(0, 15))
-
-        # Character count label
-        self.char_count_label = ctk.CTkLabel(
-            stats_frame,
-            text="Characters: 0",
-            font=ctk.CTkFont(size=12),
-            text_color=("gray40", "gray60")
-        )
-        self.char_count_label.grid(row=0, column=1)
-
-        # Bind text changes to update both counters
-        self.text_input.bind('<KeyRelease>', self.update_text_stats)
-        self.update_text_stats(None)  # Initial count
-
-    def update_text_stats(self, event):
-        """Update both word and character count labels"""
-        text = self.text_input.get("1.0", "end-1c")
-        char_count = len(text)
-        # Split by whitespace and filter out empty strings
-        word_count = len([word for word in text.split() if word.strip()])
-        
-        self.char_count_label.configure(text=f"Characters: {char_count}")
-        self.word_count_label.configure(text=f"Words: {word_count}")
-
     def setup_voice_selection(self):
         """Setup voice selection with modern UI"""
         voice_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
@@ -985,6 +973,16 @@ class EdgeTTSApp(ctk.CTk):
             ctk.set_appearance_mode("Light")
         else:
             ctk.set_appearance_mode("Dark")
+
+    def update_text_stats(self, event):
+        """Update both word and character count labels"""
+        text = self.text_input.get("1.0", "end-1c")
+        char_count = len(text)
+        # Split by whitespace and filter out empty strings
+        word_count = len([word for word in text.split() if word.strip()])
+        
+        self.char_count_label.configure(text=f"Characters: {char_count}")
+        self.word_count_label.configure(text=f"Words: {word_count}")
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
