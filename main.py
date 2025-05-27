@@ -16,7 +16,7 @@ from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_stat
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
-WINDOW_SIZE = "700x500"  # Reduced initial height
+WINDOW_SIZE = "800x600"  # Increased initial size
 DEFAULT_APPEARANCE_MODE = "System"
 DEFAULT_COLOR_THEME = "blue"
 TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp files
@@ -201,8 +201,8 @@ class EdgeTTSApp(ctk.CTk):
 
         self.title(WINDOW_TITLE)
         self.geometry(WINDOW_SIZE)
-        self.resizable(False, False)  # Disable window resizing
-
+        self.minsize(700, 500)  # Set minimum window size
+        
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
 
@@ -214,101 +214,39 @@ class EdgeTTSApp(ctk.CTk):
         self.is_speaking = False
         self.stop_requested = threading.Event() # For stopping speak/save operations
 
-        # --- Main Frame ---
-        self.main_frame = ctk.CTkFrame(self)
-        self.main_frame.pack(padx=20, pady=20, fill="both", expand=True)
+        # Create main container with padding
+        self.container = ctk.CTkFrame(self)
+        self.container.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # --- Text Input Frame ---
-        self.text_input_frame = ctk.CTkFrame(self.main_frame)
-        self.text_input_frame.pack(fill="x", expand=False)
-
-        # --- Text Input Header ---
-        self.text_header_frame = ctk.CTkFrame(self.text_input_frame)
-        self.text_header_frame.pack(fill="x", pady=(0, 5))
-
-        self.text_label = ctk.CTkLabel(self.text_header_frame, text="Enter Text:")
-        self.text_label.pack(side="left", padx=(0, 10))
-
-        self.load_file_button = ctk.CTkButton(self.text_header_frame, text="Load from File", 
-                                            command=self.on_load_file, width=100)
-        self.load_file_button.pack(side="right")
-
-        self.text_input = ctk.CTkTextbox(self.text_input_frame, height=100, wrap="word")
-        self.text_input.insert("1.0", DEFAULT_TEXT)
-        self.text_input.pack(fill="x", expand=False)
-
-        # --- Voice Search and Selection ---
-        self.voice_selection_frame = ctk.CTkFrame(self.main_frame)
-        self.voice_selection_frame.pack(pady=(0,10), fill="x")
-
-        self.voice_label = ctk.CTkLabel(self.voice_selection_frame, text="Select Voice:")
-        self.voice_label.pack(side="left", padx=(0, 10))
-
-        # Configure ttk style for the combobox
-        style = ttk.Style()
-        style.configure('Custom.TCombobox', 
-            background='white',
-            fieldbackground='white',
-            selectbackground='#0078D4',
-            selectforeground='white'
+        # Add theme toggle in top right
+        self.theme_button = ctk.CTkButton(
+            self.container,
+            text="🌓",
+            width=40,
+            command=self.toggle_theme,
+            fg_color="transparent",
+            border_width=1
         )
-        style.map('Custom.TCombobox',
-            fieldbackground=[('readonly', 'white')],
-            selectbackground=[('readonly', '#0078D4')],
-            selectforeground=[('readonly', 'white')]
-        )
+        self.theme_button.pack(side="top", anchor="e", padx=10, pady=(0, 10))
+
+        # Create main content area
+        self.main_frame = ctk.CTkFrame(self.container)
+        self.main_frame.pack(fill="both", expand=True)
+
+        # Text input section with improved styling
+        self.setup_text_input_section()
         
-        self.voice_combobox = ttk.Combobox(
-            self.voice_selection_frame,
-            values=["Loading voices..."],
-            state="readonly",  # Changed from disabled to readonly
-            width=60,
-            height=15,
-            style='Custom.TCombobox'
-        )
-        self.voice_combobox.pack(fill="x", expand=True, padx=5)  # Added padding
-        self.voice_combobox.set("Loading voices...")
-        self.voice_combobox.bind('<<ComboboxSelected>>', lambda e: self.on_voice_selected_from_combobox(self.voice_combobox.get()))
-
-        # --- Controls ---
-        self.controls_frame = ctk.CTkFrame(self.main_frame)
-        self.controls_frame.pack(pady=10, fill="x")
-
-        self.speak_button = ctk.CTkButton(self.controls_frame, text="Speak", command=self.on_speak)
-        self.speak_button.pack(side="left", padx=5, expand=True, fill="x")
-
-        self.stop_button = ctk.CTkButton(self.controls_frame, text="Stop", command=self.on_stop, fg_color="red", hover_color="darkred")
-        # Stop button will be packed/unpacked dynamically
-
-        self.save_button = ctk.CTkButton(self.controls_frame, text="Save Audio", command=self.on_save_as)
-        self.save_button.pack(side="left", padx=5, expand=True, fill="x")
-
-        # --- Status Bar ---
-        self.status_frame = ctk.CTkFrame(self.main_frame)
-        self.status_frame.pack(pady=(10, 0), fill="x")
-
-        # Status labels
-        self.loading_status = ctk.CTkLabel(self.status_frame, text="Status: Initializing...", anchor="w")
-        self.loading_status.pack(fill="x", padx=5, pady=2)
-
-        self.cache_status = ctk.CTkLabel(self.status_frame, text="Cache: Checking...", anchor="w")
-        self.cache_status.pack(fill="x", padx=5, pady=2)
-
-        self.voice_count = ctk.CTkLabel(self.status_frame, text="Voices: -", anchor="w")
-        self.voice_count.pack(fill="x", padx=5, pady=2)
-
-        self.last_updated = ctk.CTkLabel(self.status_frame, text="Last Updated: -", anchor="w")
-        self.last_updated.pack(fill="x", padx=5, pady=2)
-
-        # Progress bar for loading
-        self.progress_bar = ctk.CTkProgressBar(self.status_frame)
-        self.progress_bar.pack(fill="x", padx=5, pady=5)
-        self.progress_bar.set(0)
+        # Voice selection section with modern styling
+        self.setup_voice_selection()
+        
+        # Controls section with improved layout
+        self.setup_controls()
+        
+        # Status section with better visualization
+        self.setup_status_section()
 
         self.load_initial_voices()
-
-        # Add after all components are created
-        self.after(100, self.adjust_window_size)  # Schedule window adjustment after components are rendered
+        self.after(100, self.adjust_window_size)
 
     def adjust_window_size(self):
         """Adjust window size to fit components"""
@@ -386,7 +324,7 @@ class EdgeTTSApp(ctk.CTk):
             self.after(0, self.update_detailed_status, error_msg, cache_info)
             self.after(0, self.progress_bar.set, 0)
             self.after(0, self.voice_combobox.configure, {"values": ["Error loading voices"]})
-            self.after(0, self.voice_combobox.set, "Error loading voices")
+            self.voice_combobox.set("Error loading voices")
 
     def process_loaded_voices(self):
         """Process loaded voices and update UI"""
@@ -688,6 +626,168 @@ class EdgeTTSApp(ctk.CTk):
         if selected_display_name in ["Loading voices...", "Error loading voices", "No voices found", "No match found"]:
             return None
         return self.voice_map.get(selected_display_name)
+
+    def setup_text_input_section(self):
+        """Setup the text input section with improved styling"""
+        text_frame = ctk.CTkFrame(self.main_frame)
+        text_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        header_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(5, 0))
+
+        ctk.CTkLabel(
+            header_frame,
+            text="Text Input",
+            font=("Helvetica", 14, "bold")
+        ).pack(side="left")
+
+        self.load_file_button = ctk.CTkButton(
+            header_frame,
+            text="Load File",
+            width=100,
+            command=self.on_load_file,
+            font=("Helvetica", 12)
+        )
+        self.load_file_button.pack(side="right")
+
+        # Text input with modern styling
+        self.text_input = ctk.CTkTextbox(
+            text_frame,
+            height=150,
+            wrap="word",
+            font=("Helvetica", 12),
+            border_width=2
+        )
+        self.text_input.pack(fill="both", expand=True, pady=10)
+        self.text_input.insert("1.0", DEFAULT_TEXT)
+
+    def setup_voice_selection(self):
+        """Setup voice selection with improved UI"""
+        voice_frame = ctk.CTkFrame(self.main_frame)
+        voice_frame.pack(fill="x", padx=10, pady=5)
+
+        ctk.CTkLabel(
+            voice_frame,
+            text="Voice Selection",
+            font=("Helvetica", 14, "bold")
+        ).pack(anchor="w", pady=5)
+
+        # Modern combobox styling
+        style = ttk.Style()
+        style.configure(
+            'Custom.TCombobox',
+            background='white',
+            fieldbackground='white',
+            selectbackground='#0078D4',
+            selectforeground='white',
+            padding=5
+        )
+
+        self.voice_combobox = ttk.Combobox(
+            voice_frame,
+            values=["Loading voices..."],
+            state="readonly",
+            width=60,
+            height=15,
+            style='Custom.TCombobox'
+        )
+        self.voice_combobox.pack(fill="x", pady=5)
+        self.voice_combobox.set("Loading voices...")
+        self.voice_combobox.bind('<<ComboboxSelected>>', 
+            lambda e: self.on_voice_selected_from_combobox(self.voice_combobox.get()))
+
+    def setup_controls(self):
+        """Setup control buttons with modern styling"""
+        controls_frame = ctk.CTkFrame(self.main_frame)
+        controls_frame.pack(fill="x", padx=10, pady=10)
+
+        # Modern button styling
+        button_font = ("Helvetica", 12, "bold")
+        
+        self.speak_button = ctk.CTkButton(
+            controls_frame,
+            text="▶ Speak",
+            command=self.on_speak,
+            font=button_font,
+            height=40
+        )
+        self.speak_button.pack(side="left", padx=5, expand=True, fill="x")
+
+        self.stop_button = ctk.CTkButton(
+            controls_frame,
+            text="■ Stop",
+            command=self.on_stop,
+            font=button_font,
+            fg_color="#E74C3C",
+            hover_color="#C0392B",
+            height=40
+        )
+
+        self.save_button = ctk.CTkButton(
+            controls_frame,
+            text="💾 Save Audio",
+            command=self.on_save_as,
+            font=button_font,
+            height=40
+        )
+        self.save_button.pack(side="left", padx=5, expand=True, fill="x")
+
+    def setup_status_section(self):
+        """Setup status section with improved visualization"""
+        status_frame = ctk.CTkFrame(self.main_frame)
+        status_frame.pack(fill="x", padx=10, pady=5)
+
+        # Status header
+        ctk.CTkLabel(
+            status_frame,
+            text="Status Information",
+            font=("Helvetica", 14, "bold")
+        ).pack(anchor="w", pady=5)
+
+        # Status labels with improved styling
+        self.loading_status = ctk.CTkLabel(
+            status_frame,
+            text="Status: Initializing...",
+            anchor="w",
+            font=("Helvetica", 12)
+        )
+        self.loading_status.pack(fill="x", pady=2)
+
+        self.cache_status = ctk.CTkLabel(
+            status_frame,
+            text="Cache: Checking...",
+            anchor="w",
+            font=("Helvetica", 12)
+        )
+        self.cache_status.pack(fill="x", pady=2)
+
+        self.voice_count = ctk.CTkLabel(
+            status_frame,
+            text="Voices: -",
+            anchor="w",
+            font=("Helvetica", 12)
+        )
+        self.voice_count.pack(fill="x", pady=2)
+
+        self.last_updated = ctk.CTkLabel(
+            status_frame,
+            text="Last Updated: -",
+            anchor="w",
+            font=("Helvetica", 12)
+        )
+        self.last_updated.pack(fill="x", pady=2)
+
+        # Modern progress bar
+        self.progress_bar = ctk.CTkProgressBar(status_frame)
+        self.progress_bar.pack(fill="x", pady=10)
+        self.progress_bar.set(0)
+
+    def toggle_theme(self):
+        """Toggle between light and dark theme"""
+        if ctk.get_appearance_mode() == "Dark":
+            ctk.set_appearance_mode("Light")
+        else:
+            ctk.set_appearance_mode("Dark")
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
