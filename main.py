@@ -14,6 +14,7 @@ import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
 import pygame  # For advanced audio playback
 from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
+from PIL import Image, ImageTk  # For icon support
 
 # --- Global Variables ---
 WINDOW_TITLE = "🎙️ Edge TTS Studio"  # More professional name
@@ -24,6 +25,7 @@ TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".edge_tts_gui_config.json")  # Config file in user's home directory
+ICON_FILES = ["icon.ico", "icon.png"]  # Application icon files
 
 # Color scheme
 COLORS = {
@@ -235,6 +237,9 @@ LOCALE_NAME_MAP = {
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Try to set application icon
+        self._set_app_icon()
 
         # Initialize pygame mixer
         pygame.mixer.init()
@@ -1200,6 +1205,20 @@ class EdgeTTSApp(ctk.CTk):
         if pygame.mixer.get_init():
             pygame.mixer.quit()
         self.quit()
+
+    def _set_app_icon(self):
+        """Try to set the application icon using available icon files"""
+        for icon_file in ICON_FILES:
+            if os.path.exists(icon_file):
+                try:
+                    icon = Image.open(icon_file)
+                    photo = ImageTk.PhotoImage(icon)
+                    self.wm_iconphoto(True, photo)
+                    return  # Successfully set the icon
+                except Exception as e:
+                    print(f"Could not set icon using {icon_file}: {e}")
+        
+        print("Could not set any application icon")
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
