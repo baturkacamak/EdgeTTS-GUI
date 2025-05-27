@@ -201,7 +201,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.title(WINDOW_TITLE)
         self.geometry(WINDOW_SIZE)
-        self.resizable(True, True)  # Allow window resizing
+        self.resizable(False, False)  # Disable window resizing
 
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
