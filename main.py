@@ -614,9 +614,13 @@ class EdgeTTSApp(ctk.CTk):
                         if not self.stop_requested.is_set():
                             self.after(0, self.update_detailed_status, f"Error playing audio: {e}")
                     finally:
-                        if os.path.exists(temp_audio_path) and not pygame.mixer.music.get_busy():
-                            try: os.remove(temp_audio_path)
-                            except Exception as e_del: print(f"Error deleting temp file: {e_del}")
+                        # Only try to remove the file if mixer is not initialized or not busy
+                        try:
+                            if not pygame.mixer.get_init() or not pygame.mixer.music.get_busy():
+                                if os.path.exists(temp_audio_path):
+                                    os.remove(temp_audio_path)
+                        except Exception as e_del:
+                            print(f"Error deleting temp file: {e_del}")
             finally:
                 if not self.stop_requested.is_set():
                     self.after(0, lambda: self._set_speaking_state(False))
