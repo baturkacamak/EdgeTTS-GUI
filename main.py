@@ -10,6 +10,8 @@ from playsound import playsound # Using playsound 1.2.2
 import time # For small delay in search
 import docx  # For DOCX files
 import chardet  # For detecting text file encodings
+import tkinter.ttk as ttk
+from CTkScrollableDropdown import CTkScrollableDropdown
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
@@ -245,11 +247,17 @@ class EdgeTTSApp(ctk.CTk):
         self.voice_label = ctk.CTkLabel(self.voice_selection_frame, text="Select Voice:")
         self.voice_label.pack(side="left", padx=(0, 10))
 
-        self.voice_combobox = ctk.CTkComboBox(self.voice_selection_frame, values=["Loading voices..."], state="readonly",
-                                              command=self.on_voice_selected_from_combobox)
-        self.voice_combobox.pack(side="left", fill="x", expand=True)
+        self.voice_combobox = ctk.CTkComboBox(
+            self.voice_selection_frame,
+            values=self.display_voices_full,
+            state="readonly",
+            width=400,  # adjust as needed
+            command=self.on_voice_selected_from_combobox
+        )
+        self.voice_combobox.pack(fill="x", expand=True)
         self.voice_combobox.set("Loading voices...")
-
+        # Attach scrollable dropdown to the combobox
+        self.voice_dropdown = CTkScrollableDropdown(self.voice_combobox, values=self.display_voices_full, height=300)
 
         # --- Controls ---
         self.controls_frame = ctk.CTkFrame(self.main_frame)
@@ -314,6 +322,8 @@ class EdgeTTSApp(ctk.CTk):
     def update_voice_combobox_post_load(self):
         if self.display_voices_full:
             self.voice_combobox.configure(values=self.display_voices_full)
+            # Update scrollable dropdown values as well
+            self.voice_dropdown.configure(values=self.display_voices_full)
             default_selection = next((v for v in self.display_voices_full if DEFAULT_VOICE in v), self.display_voices_full[0])
             self.voice_combobox.set(default_selection)
             self.update_status("Voices loaded. Ready.")
@@ -321,6 +331,7 @@ class EdgeTTSApp(ctk.CTk):
             self.save_button.configure(state="normal")
         else:
             self.voice_combobox.configure(values=["No voices found"])
+            self.voice_dropdown.configure(values=["No voices found"])
             self.voice_combobox.set("No voices found")
             self.update_status("No voices found.")
         self.voice_search_entry.configure(state="normal")
