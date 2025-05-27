@@ -849,7 +849,20 @@ class EdgeTTSApp(ctk.CTk):
                 self.after(0, self.update_detailed_status, "Operation stopped before synthesis.")
                 return False
 
-            communicate = edge_tts.Communicate(text, voice_short_name)
+            # Get rate and pitch values
+            rate = self.rate_slider.get()
+            pitch = self.pitch_slider.get()
+
+            # Create Communicate instance with rate and pitch adjustments
+            # Rate needs to be a percentage string (e.g., "+0%", "+50%", "-50%")
+            rate_percent = int((rate - 1.0) * 100)  # Convert multiplier to percentage difference
+            communicate = edge_tts.Communicate(
+                text,
+                voice_short_name,
+                rate=f"{rate_percent:+d}%",  # Format: +0%, +50%, -50%
+                pitch=f"{int(pitch):+d}Hz"  # Format: +0Hz, +10Hz, etc.
+            )
+            
             asyncio.run(communicate.save(output_filepath))
 
             if self.stop_requested.is_set(): # Check again after potentially long synthesis
@@ -1110,6 +1123,64 @@ class EdgeTTSApp(ctk.CTk):
         self.volume_slider.grid(row=0, column=1, sticky="ew")
         self.volume_slider.set(70)  # Default volume
 
+        # Rate control
+        rate_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        rate_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
+        rate_frame.grid_columnconfigure(1, weight=1)
+
+        rate_label = ctk.CTkLabel(
+            rate_frame,
+            text="⚡ Rate",
+            font=("Helvetica", 12)
+        )
+        rate_label.grid(row=0, column=0, padx=(0, 10))
+
+        self.rate_value_label = ctk.CTkLabel(
+            rate_frame,
+            text="1.0×",
+            font=("Helvetica", 10)
+        )
+        self.rate_value_label.grid(row=0, column=2, padx=(10, 0))
+
+        self.rate_slider = ctk.CTkSlider(
+            rate_frame,
+            from_=0.5,
+            to=2.0,
+            number_of_steps=30,
+            command=self.on_rate_change
+        )
+        self.rate_slider.grid(row=0, column=1, sticky="ew")
+        self.rate_slider.set(1.0)  # Default rate
+
+        # Pitch control
+        pitch_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        pitch_frame.grid(row=5, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
+        pitch_frame.grid_columnconfigure(1, weight=1)
+
+        pitch_label = ctk.CTkLabel(
+            pitch_frame,
+            text="🎵 Pitch",
+            font=("Helvetica", 12)
+        )
+        pitch_label.grid(row=0, column=0, padx=(0, 10))
+
+        self.pitch_value_label = ctk.CTkLabel(
+            pitch_frame,
+            text="±0 Hz",
+            font=("Helvetica", 10)
+        )
+        self.pitch_value_label.grid(row=0, column=2, padx=(10, 0))
+
+        self.pitch_slider = ctk.CTkSlider(
+            pitch_frame,
+            from_=-50,
+            to=50,
+            number_of_steps=20,
+            command=self.on_pitch_change
+        )
+        self.pitch_slider.grid(row=0, column=1, sticky="ew")
+        self.pitch_slider.set(0)  # Default pitch
+
         # Bind progress bar click for seeking
         self.progress_bar.bind("<Button-1>", self.on_progress_click)
 
@@ -1236,6 +1307,14 @@ class EdgeTTSApp(ctk.CTk):
                     print(f"Could not set icon using {icon_file}: {e}")
         
         print("Could not set any application icon")
+
+    def on_rate_change(self, value):
+        """Handle rate slider change"""
+        self.rate_value_label.configure(text=f"{value:.1f}×")
+
+    def on_pitch_change(self, value):
+        """Handle pitch slider change"""
+        self.pitch_value_label.configure(text=f"±{int(value)} Hz")
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
