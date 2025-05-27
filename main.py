@@ -8,6 +8,8 @@ import os
 import tempfile
 from playsound import playsound # Using playsound 1.2.2
 import time # For small delay in search
+import docx  # For DOCX files
+import chardet  # For detecting text file encodings
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
@@ -17,6 +19,14 @@ DEFAULT_COLOR_THEME = "blue"
 TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp files
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
+
+# Supported input file formats
+SUPPORTED_INPUT_FORMATS = [
+    ("Text files", "*.txt"),
+    ("Word documents", "*.docx"),
+    ("Rich Text Format", "*.rtf"),
+    ("All files", "*.*")
+]
 
 # Supported audio formats and their extensions
 SUPPORTED_FORMATS = [
@@ -56,13 +66,24 @@ class EdgeTTSApp(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self)
         self.main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
-        # --- Text Input ---
-        self.text_label = ctk.CTkLabel(self.main_frame, text="Enter Text:")
-        self.text_label.pack(pady=(0, 5), anchor="w")
+        # --- Text Input Frame ---
+        self.text_input_frame = ctk.CTkFrame(self.main_frame)
+        self.text_input_frame.pack(fill="x", expand=False)
 
-        self.text_input = ctk.CTkTextbox(self.main_frame, height=100, wrap="word") # Reduced height
+        # --- Text Input Header ---
+        self.text_header_frame = ctk.CTkFrame(self.text_input_frame)
+        self.text_header_frame.pack(fill="x", pady=(0, 5))
+
+        self.text_label = ctk.CTkLabel(self.text_header_frame, text="Enter Text:")
+        self.text_label.pack(side="left", padx=(0, 10))
+
+        self.load_file_button = ctk.CTkButton(self.text_header_frame, text="Load from File", 
+                                            command=self.on_load_file, width=100)
+        self.load_file_button.pack(side="right")
+
+        self.text_input = ctk.CTkTextbox(self.text_input_frame, height=100, wrap="word")
         self.text_input.insert("1.0", DEFAULT_TEXT)
-        self.text_input.pack(fill="x", expand=False) # Changed expand to False for y-axis
+        self.text_input.pack(fill="x", expand=False)
 
         # --- Voice Search and Selection ---
         self.voice_search_label = ctk.CTkLabel(self.main_frame, text="Search Voice:")
@@ -342,6 +363,64 @@ class EdgeTTSApp(ctk.CTk):
         # The running threads will check the stop_requested event at their earliest convenience.
         self.update_status("Operation stopped. Ready.")
 
+    def on_load_file(self):
+        """Handle loading text from a file."""
+        if self.is_speaking:
+            return
+
+        filepath = tkinter.filedialog.askopenfilename(
+            filetypes=SUPPORTED_INPUT_FORMATS,
+            title="Select Text File"
+        )
+        
+        if not filepath:
+            return
+
+        try:
+            text = self._read_file_content(filepath)
+            if text:
+                self.text_input.delete("1.0", "end")
+                self.text_input.insert("1.0", text)
+                self.update_status(f"Loaded text from {os.path.basename(filepath)}")
+            else:
+                self.update_status("Error: Could not read text from file.")
+        except Exception as e:
+            self.update_status(f"Error loading file: {str(e)}")
+
+    def _read_file_content(self, filepath):
+        """Read content from various file types."""
+        file_ext = os.path.splitext(filepath)[1].lower()
+        
+        try:
+            if file_ext == '.docx':
+                return self._read_docx(filepath)
+            elif file_ext == '.rtf':
+                return self._read_rtf(filepath)
+            else:  # Default to text file
+                return self._read_text_file(filepath)
+        except Exception as e:
+            raise Exception(f"Error reading file: {str(e)}")
+
+    def _read_text_file(self, filepath):
+        """Read content from a text file with encoding detection."""
+        with open(filepath, 'rb') as file:
+            raw_data = file.read()
+            detected = chardet.detect(raw_data)
+            encoding = detected['encoding'] or 'utf-8'
+            
+        with open(filepath, 'r', encoding=encoding) as file:
+            return file.read()
+
+    def _read_docx(self, filepath):
+        """Read content from a DOCX file."""
+        doc = docx.Document(filepath)
+        return '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+
+    def _read_rtf(self, filepath):
+        """Read content from an RTF file."""
+        # For RTF files, we'll use a simple text reading approach
+        # as proper RTF parsing would require additional dependencies
+        return self._read_text_file(filepath)
 
 if __name__ == "__main__":
     app = EdgeTTSApp()

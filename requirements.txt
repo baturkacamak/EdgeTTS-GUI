@@ -2,3 +2,5 @@ customtkinter
 edge-tts
 playsound==1.2.2
 watchdog
+python-docx
+chardet
