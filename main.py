@@ -243,8 +243,9 @@ class EdgeTTSApp(ctk.CTk):
         # Create sidebar frame with widgets
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=10)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew", padx=10, pady=10)
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        
+        self.sidebar_frame.grid_rowconfigure(2, weight=1)  # Make text frame row expandable
+        self.sidebar_frame.grid_columnconfigure(0, weight=1)
+
         # App logo/name
         self.logo_label = ctk.CTkLabel(
             self.sidebar_frame, 
@@ -269,7 +270,7 @@ class EdgeTTSApp(ctk.CTk):
         text_frame = ctk.CTkFrame(self.sidebar_frame, corner_radius=10)
         text_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
         text_frame.grid_columnconfigure(0, weight=1)
-        text_frame.grid_rowconfigure(1, weight=1)
+        text_frame.grid_rowconfigure(1, weight=1)  # Make text input row expandable
 
         # Header frame with modern styling
         header_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
@@ -301,7 +302,6 @@ class EdgeTTSApp(ctk.CTk):
         # Text input with modern styling
         self.text_input = ctk.CTkTextbox(
             text_frame,
-            height=200,
             wrap="word",
             font=ctk.CTkFont(size=13, family="Segoe UI"),
             border_width=2,
@@ -341,7 +341,7 @@ class EdgeTTSApp(ctk.CTk):
         # Create main content frame
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, rowspan=4, sticky="nsew", padx=(0, 10), pady=10)
-        self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(3, weight=1)  # Give extra space to the last row
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         # Initialize other components
@@ -749,7 +749,7 @@ class EdgeTTSApp(ctk.CTk):
     def setup_voice_selection(self):
         """Setup voice selection with modern UI"""
         voice_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        voice_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        voice_frame.grid(row=0, column=0, sticky="new", padx=10, pady=5)
         voice_frame.grid_columnconfigure(0, weight=1)
 
         # Voice selection header with icon and modern font
@@ -839,7 +839,7 @@ class EdgeTTSApp(ctk.CTk):
     def setup_controls(self):
         """Setup control buttons with modern styling"""
         controls_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        controls_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=5)
+        controls_frame.grid(row=1, column=0, sticky="new", padx=10, pady=5)
         controls_frame.grid_columnconfigure((0, 1), weight=1)
 
         # Controls header
@@ -900,7 +900,7 @@ class EdgeTTSApp(ctk.CTk):
     def setup_status_section(self):
         """Setup status section with modern visualization"""
         status_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        status_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=5)
+        status_frame.grid(row=2, column=0, sticky="new", padx=10, pady=5)
         status_frame.grid_columnconfigure(0, weight=1)
 
         # Status header
