@@ -238,6 +238,7 @@ class EdgeTTSApp(ctk.CTk):
 
         # Initialize pygame mixer
         pygame.mixer.init()
+        pygame.mixer.quit()  # Quit immediately to free resources
         
         self.title(WINDOW_TITLE)
         self.geometry(WINDOW_SIZE)
@@ -618,6 +619,8 @@ class EdgeTTSApp(ctk.CTk):
     def play_audio(self, audio_path):
         """Play audio using pygame mixer"""
         try:
+            # Initialize mixer just before playing
+            pygame.mixer.init()
             pygame.mixer.music.load(audio_path)
             pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
             pygame.mixer.music.play()
@@ -635,7 +638,7 @@ class EdgeTTSApp(ctk.CTk):
 
     def update_progress(self):
         """Update progress bar and time display"""
-        if pygame.mixer.music.get_busy() and not self.stop_requested.is_set():
+        if pygame.mixer.get_init() and pygame.mixer.music.get_busy() and not self.stop_requested.is_set():
             current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
             progress = current_pos / self.audio_length if self.audio_length > 0 else 0
             self.progress_bar.set(progress)
@@ -647,6 +650,10 @@ class EdgeTTSApp(ctk.CTk):
             if self.update_progress_id:
                 self.after_cancel(self.update_progress_id)
                 self.update_progress_id = None
+            # Clean up pygame mixer if playback is finished
+            if pygame.mixer.get_init() and not pygame.mixer.music.get_busy():
+                pygame.mixer.quit()
+                self._set_speaking_state(False)
 
     def format_time(self, seconds):
         """Format seconds to MM:SS"""
@@ -656,6 +663,9 @@ class EdgeTTSApp(ctk.CTk):
 
     def on_pause_resume(self):
         """Handle pause/resume button click"""
+        if not pygame.mixer.get_init():
+            return
+            
         if self.is_paused:
             pygame.mixer.music.unpause()
             self.pause_button.configure(text=f"{ICONS['PAUSE']} Pause")
@@ -669,7 +679,8 @@ class EdgeTTSApp(ctk.CTk):
 
     def on_volume_change(self, value):
         """Handle volume slider change"""
-        pygame.mixer.music.set_volume(float(value) / 100)
+        if pygame.mixer.get_init():
+            pygame.mixer.music.set_volume(float(value) / 100)
 
     def on_progress_click(self, event):
         """Handle click on progress bar for seeking"""
@@ -727,7 +738,9 @@ class EdgeTTSApp(ctk.CTk):
         """Handle stop button click"""
         self.update_detailed_status("Stop request received...")
         self.stop_requested.set()
-        pygame.mixer.music.stop()
+        if pygame.mixer.get_init():
+            pygame.mixer.music.stop()
+            pygame.mixer.quit()  # Quit mixer after stopping
         self._set_speaking_state(False)
         self.progress_bar.set(0)
         self.current_time.configure(text="0:00")
@@ -1154,6 +1167,13 @@ class EdgeTTSApp(ctk.CTk):
         self.char_count_label.configure(text=f"Characters: {char_count}")
         self.word_count_label.configure(text=f"Words: {word_count}")
 
+    def on_closing(self, event=0):
+        """Handle application closing"""
+        if pygame.mixer.get_init():
+            pygame.mixer.quit()
+        self.quit()
+
 if __name__ == "__main__":
     app = EdgeTTSApp()
+    app.protocol("WM_DELETE_WINDOW", app.on_closing)  # Handle window closing
     app.mainloop()
