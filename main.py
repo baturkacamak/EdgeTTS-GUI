@@ -15,7 +15,7 @@ import tkinter.ttk as ttk
 from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
 
 # --- Global Variables ---
-WINDOW_TITLE = "Edge TTS GUI"
+WINDOW_TITLE = "🎙️ Edge TTS GUI"  # Added microphone icon to window title
 WINDOW_SIZE = "800x600"  # Increased initial size
 DEFAULT_APPEARANCE_MODE = "System"
 DEFAULT_COLOR_THEME = "blue"
@@ -23,6 +23,24 @@ TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".edge_tts_gui_config.json")  # Config file in user's home directory
+
+# Icons (Unicode)
+ICONS = {
+    "MICROPHONE": "🎙️",
+    "SPEAKER": "🔊",
+    "SAVE": "💾",
+    "STOP": "⏹️",
+    "FILE": "📄",
+    "THEME": "🌓",
+    "STATUS": "ℹ️",
+    "CACHE": "📦",
+    "VOICE": "🗣️",
+    "CLOCK": "🕒",
+    "COUNT": "🔢",
+    "PLAY": "▶️",
+    "TEXT": "📝",
+    "LOAD": "📂",
+}
 
 # Supported input file formats
 SUPPORTED_INPUT_FORMATS = [
@@ -257,19 +275,19 @@ class EdgeTTSApp(ctk.CTk):
 
     def update_detailed_status(self, message, cache_info=None):
         """Update all status components with detailed information"""
-        self.loading_status.configure(text=f"Status: {message}")
+        self.loading_status.configure(text=f"{ICONS['SPEAKER']} Status: {message}")
         
         if cache_info:
             self.cache_status.configure(
-                text=f"Cache: {cache_info['message']}"
+                text=f"{ICONS['CACHE']} Cache: {cache_info['message']}"
                 + (f" (Expires in: {cache_info['expires_in']})" if cache_info['expires_in'] else "")
             )
             
             if cache_info.get('voice_count'):
-                self.voice_count.configure(text=f"Voices: {cache_info['voice_count']}")
+                self.voice_count.configure(text=f"{ICONS['COUNT']} Voices: {cache_info['voice_count']}")
             
             if cache_info.get('last_updated'):
-                self.last_updated.configure(text=f"Last Updated: {cache_info['last_updated']}")
+                self.last_updated.configure(text=f"{ICONS['CLOCK']} Last Updated: {cache_info['last_updated']}")
 
     def load_initial_voices(self):
         """Initialize voice loading process"""
@@ -635,15 +653,16 @@ class EdgeTTSApp(ctk.CTk):
         header_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
         header_frame.pack(fill="x", pady=(5, 0))
 
+        # Text input header with icon
         ctk.CTkLabel(
             header_frame,
-            text="Text Input",
+            text=f"{ICONS['TEXT']} Text Input",
             font=("Helvetica", 14, "bold")
         ).pack(side="left")
 
         self.load_file_button = ctk.CTkButton(
             header_frame,
-            text="Load File",
+            text=f"{ICONS['LOAD']} Load File",
             width=100,
             command=self.on_load_file,
             font=("Helvetica", 12)
@@ -666,9 +685,10 @@ class EdgeTTSApp(ctk.CTk):
         voice_frame = ctk.CTkFrame(self.main_frame)
         voice_frame.pack(fill="x", padx=10, pady=5)
 
+        # Voice selection header with icon
         ctk.CTkLabel(
             voice_frame,
-            text="Voice Selection",
+            text=f"{ICONS['VOICE']} Voice Selection",
             font=("Helvetica", 14, "bold")
         ).pack(anchor="w", pady=5)
 
@@ -706,7 +726,7 @@ class EdgeTTSApp(ctk.CTk):
         
         self.speak_button = ctk.CTkButton(
             controls_frame,
-            text="▶ Speak",
+            text=f"{ICONS['PLAY']} Speak",
             command=self.on_speak,
             font=button_font,
             height=40
@@ -715,7 +735,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.stop_button = ctk.CTkButton(
             controls_frame,
-            text="■ Stop",
+            text=f"{ICONS['STOP']} Stop",
             command=self.on_stop,
             font=button_font,
             fg_color="#E74C3C",
@@ -725,7 +745,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.save_button = ctk.CTkButton(
             controls_frame,
-            text="💾 Save Audio",
+            text=f"{ICONS['SAVE']} Save Audio",
             command=self.on_save_as,
             font=button_font,
             height=40
@@ -737,17 +757,17 @@ class EdgeTTSApp(ctk.CTk):
         status_frame = ctk.CTkFrame(self.main_frame)
         status_frame.pack(fill="x", padx=10, pady=5)
 
-        # Status header
+        # Status header with icon
         ctk.CTkLabel(
             status_frame,
-            text="Status Information",
+            text=f"{ICONS['STATUS']} Status Information",
             font=("Helvetica", 14, "bold")
         ).pack(anchor="w", pady=5)
 
-        # Status labels with improved styling
+        # Status labels with improved styling and icons
         self.loading_status = ctk.CTkLabel(
             status_frame,
-            text="Status: Initializing...",
+            text=f"{ICONS['SPEAKER']} Status: Initializing...",
             anchor="w",
             font=("Helvetica", 12)
         )
@@ -755,7 +775,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.cache_status = ctk.CTkLabel(
             status_frame,
-            text="Cache: Checking...",
+            text=f"{ICONS['CACHE']} Cache: Checking...",
             anchor="w",
             font=("Helvetica", 12)
         )
@@ -763,7 +783,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.voice_count = ctk.CTkLabel(
             status_frame,
-            text="Voices: -",
+            text=f"{ICONS['COUNT']} Voices: -",
             anchor="w",
             font=("Helvetica", 12)
         )
@@ -771,7 +791,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.last_updated = ctk.CTkLabel(
             status_frame,
-            text="Last Updated: -",
+            text=f"{ICONS['CLOCK']} Last Updated: -",
             anchor="w",
             font=("Helvetica", 12)
         )
