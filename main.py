@@ -211,14 +211,14 @@ class EdgeTTSApp(ctk.CTk):
             return None
         return self.voice_map.get(selected_display_name)
 
-    def _synthesize_speech(self, text, voice_short_name, output_filepath, mime_type="audio/mp3"):
+    def _synthesize_speech(self, text, voice_short_name, output_filepath):
         try:
             if self.stop_requested.is_set():
                 self.after(0, self.update_status, "Operation stopped before synthesis.")
                 return False
 
             communicate = edge_tts.Communicate(text, voice_short_name)
-            asyncio.run(communicate.save(output_filepath, mime_type=mime_type))
+            asyncio.run(communicate.save(output_filepath))
 
             if self.stop_requested.is_set(): # Check again after potentially long synthesis
                 self.after(0, self.update_status, "Operation stopped after synthesis, before playback/save completion.")
@@ -332,16 +332,12 @@ class EdgeTTSApp(ctk.CTk):
             self.update_status("Save cancelled. Ready.")
             return
 
-        # Get the file extension and corresponding MIME type
-        file_ext = os.path.splitext(filepath)[1].lower()
-        mime_type = FORMAT_MIME_TYPES.get(file_ext, "audio/mp3")  # Default to MP3 if unknown
-
         self._set_speaking_state(True) # Use speaking state to manage buttons
         self.update_status(f"Synthesizing and saving to {os.path.basename(filepath)}...")
 
         def synthesis_thread():
             try:
-                success = self._synthesize_speech(text, selected_voice_short_name, filepath, mime_type)
+                success = self._synthesize_speech(text, selected_voice_short_name, filepath)
                 if self.stop_requested.is_set():
                     self.after(0, self.update_status, "Save operation stopped.")
                     return
