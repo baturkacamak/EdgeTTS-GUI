@@ -13,6 +13,7 @@ import docx  # For DOCX files
 import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
 from CTkScrollableDropdown.ctk_scrollable_dropdown_keyboard import CTkScrollableDropdownKeyboard
+from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
@@ -278,24 +279,105 @@ class EdgeTTSApp(ctk.CTk):
         self.save_button.pack(side="left", padx=5, expand=True, fill="x")
 
         # --- Status Bar ---
-        self.status_label = ctk.CTkLabel(self.main_frame, text="Ready", anchor="w")
-        self.status_label.pack(pady=(10, 0), fill="x")
+        self.status_frame = ctk.CTkFrame(self.main_frame)
+        self.status_frame.pack(pady=(10, 0), fill="x")
+
+        # Status labels
+        self.loading_status = ctk.CTkLabel(self.status_frame, text="Status: Initializing...", anchor="w")
+        self.loading_status.pack(fill="x", padx=5, pady=2)
+
+        self.cache_status = ctk.CTkLabel(self.status_frame, text="Cache: Checking...", anchor="w")
+        self.cache_status.pack(fill="x", padx=5, pady=2)
+
+        self.voice_count = ctk.CTkLabel(self.status_frame, text="Voices: -", anchor="w")
+        self.voice_count.pack(fill="x", padx=5, pady=2)
+
+        self.last_updated = ctk.CTkLabel(self.status_frame, text="Last Updated: -", anchor="w")
+        self.last_updated.pack(fill="x", padx=5, pady=2)
+
+        # Progress bar for loading
+        self.progress_bar = ctk.CTkProgressBar(self.status_frame)
+        self.progress_bar.pack(fill="x", padx=5, pady=5)
+        self.progress_bar.set(0)
 
         self.load_initial_voices()
 
+    def update_detailed_status(self, message, cache_info=None):
+        """Update all status components with detailed information"""
+        self.loading_status.configure(text=f"Status: {message}")
+        
+        if cache_info:
+            self.cache_status.configure(
+                text=f"Cache: {cache_info['message']}"
+                + (f" (Expires in: {cache_info['expires_in']})" if cache_info['expires_in'] else "")
+            )
+            
+            if cache_info.get('voice_count'):
+                self.voice_count.configure(text=f"Voices: {cache_info['voice_count']}")
+            
+            if cache_info.get('last_updated'):
+                self.last_updated.configure(text=f"Last Updated: {cache_info['last_updated']}")
+
     def load_initial_voices(self):
-        self.update_status("Loading voices...")
+        """Initialize voice loading process"""
+        self.update_detailed_status("Starting voice load process...")
+        self.progress_bar.set(0.1)
         self.speak_button.configure(state="disabled")
         self.save_button.configure(state="disabled")
         threading.Thread(target=self.load_voices_threaded, daemon=True).start()
 
     def load_voices_threaded(self):
         try:
+            # Check cache status
+            cache_info = get_cache_status()
+            self.after(0, self.update_detailed_status, "Checking cache...", cache_info)
+            self.after(0, self.progress_bar.set, 0.2)
+
+            # Try loading from cache
+            cached_voices = load_cached_voices()
+            if cached_voices:
+                self.after(0, self.update_detailed_status, "Loading from cache...", cache_info)
+                self.after(0, self.progress_bar.set, 0.6)
+                self.voices_list_full = cached_voices
+                self.after(0, self.process_loaded_voices)
+                return
+
+            # If no cache, load from network
+            self.after(0, self.update_detailed_status, "Cache not available, fetching from network...", cache_info)
+            self.after(0, self.progress_bar.set, 0.3)
+
             async def get_voices_async():
                 return await edge_tts.VoicesManager.create()
+
+            self.after(0, self.update_detailed_status, "Connecting to Microsoft Edge TTS service...", cache_info)
+            self.after(0, self.progress_bar.set, 0.4)
+            
             voices_manager = asyncio.run(get_voices_async())
             self.voices_list_full = voices_manager.voices
+            
+            self.after(0, self.update_detailed_status, "Saving to cache...", cache_info)
+            self.after(0, self.progress_bar.set, 0.7)
+            
+            # Save to cache and get updated status
+            save_voices_to_cache(self.voices_list_full)
+            cache_info = get_cache_status()
+            
+            self.after(0, self.process_loaded_voices)
+            self.after(0, self.update_detailed_status, "Processing voices...", cache_info)
+            self.after(0, self.progress_bar.set, 0.9)
 
+        except Exception as e:
+            error_msg = f"Error loading voices: {str(e)}"
+            self.after(0, self.update_detailed_status, error_msg, cache_info)
+            self.after(0, self.progress_bar.set, 0)
+            self.after(0, self.voice_combobox.configure, {"values": ["Error loading voices"]})
+            self.after(0, self.voice_combobox.set, "Error loading voices")
+
+    def process_loaded_voices(self):
+        """Process loaded voices and update UI"""
+        try:
+            self.progress_bar.set(0.95)
+            
             # Sort voices: Primarily by Locale (e.g., 'en-US'), then by FriendlyName
             self.voices_list_full.sort(key=lambda v: (v['Locale'], v['FriendlyName']))
 
@@ -303,9 +385,7 @@ class EdgeTTSApp(ctk.CTk):
             self.display_voices_full.clear()
 
             for voice in self.voices_list_full:
-                # Use LOCALE_NAME_MAP for full language/region name, fallback to Locale code
                 locale_name = LOCALE_NAME_MAP.get(voice['Locale'], voice['Locale'])
-                # Extract first name after 'Microsoft' if present, otherwise use first word
                 friendly_name = voice['FriendlyName']
                 if friendly_name.startswith("Microsoft "):
                     friendly_name = friendly_name[len("Microsoft "):]
@@ -314,13 +394,17 @@ class EdgeTTSApp(ctk.CTk):
                 self.voice_map[display_name] = voice['Name']
                 self.display_voices_full.append(display_name)
 
-            self.after(0, self.update_voice_combobox_post_load)
+            cache_info = get_cache_status()
+            self.update_detailed_status("Ready", cache_info)
+            self.progress_bar.set(1.0)
+            self.update_voice_combobox_post_load()
 
         except Exception as e:
-            self.after(0, self.update_status, f"Error loading voices: {e}")
-            self.after(0, self.voice_combobox.configure, {"values": ["Error loading voices"]})
-            self.after(0, self.voice_combobox.set, "Error loading voices")
-            self.after(0, self.voice_search_entry.configure, {"state": "normal"}) # Allow typing even if error
+            error_msg = f"Error processing voices: {str(e)}"
+            self.update_detailed_status(error_msg)
+            self.progress_bar.set(0)
+            self.voice_combobox.configure(values=["Error processing voices"])
+            self.voice_combobox.set("Error processing voices")
 
     def load_config(self):
         """Load configuration from file"""
@@ -367,7 +451,7 @@ class EdgeTTSApp(ctk.CTk):
             self.voice_combobox.configure(state="normal")
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
-            self.update_status("Voices loaded. Ready.")
+            self.update_detailed_status("Voices loaded. Ready.")
         else:
             # No voices found - set appropriate messages
             no_voices_msg = "No voices found"
@@ -377,7 +461,7 @@ class EdgeTTSApp(ctk.CTk):
             self.voice_combobox.configure(state="disabled")
             self.speak_button.configure(state="disabled")
             self.save_button.configure(state="disabled")
-            self.update_status("No voices found.")
+            self.update_detailed_status("No voices found.")
 
     def on_voice_selected_from_combobox(self, choice):
         # Save the selected voice to config when changed
@@ -392,71 +476,21 @@ class EdgeTTSApp(ctk.CTk):
         # The regular combobox callback will handle the rest
         self.on_voice_selected_from_combobox(choice)
 
-    def update_status(self, message):
-        self.status_label.configure(text=message)
-        self.update_idletasks()
-
-    def get_selected_voice_short_name(self):
-        selected_display_name = self.voice_combobox.get()
-        if selected_display_name in ["Loading voices...", "Error loading voices", "No voices found", "No match found"]:
-            return None
-        return self.voice_map.get(selected_display_name)
-
-    def _synthesize_speech(self, text, voice_short_name, output_filepath):
-        try:
-            if self.stop_requested.is_set():
-                self.after(0, self.update_status, "Operation stopped before synthesis.")
-                return False
-
-            communicate = edge_tts.Communicate(text, voice_short_name)
-            asyncio.run(communicate.save(output_filepath))
-
-            if self.stop_requested.is_set(): # Check again after potentially long synthesis
-                self.after(0, self.update_status, "Operation stopped after synthesis, before playback/save completion.")
-                if os.path.exists(output_filepath) and output_filepath.endswith(TEMP_AUDIO_FILENAME):
-                    try: os.remove(output_filepath) # Clean up temp file if stop requested
-                    except Exception: pass
-                return False
-            return True
-        except Exception as e:
-            self.after(0, self.update_status, f"Synthesis error: {e}")
-            return False
-
-    def _set_speaking_state(self, speaking: bool):
-        self.is_speaking = speaking
-        self.stop_requested.clear() # Clear stop flag when starting a new operation
-
-        if speaking:
-            self.speak_button.pack_forget()
-            self.save_button.pack_forget()
-            self.stop_button.pack(side="left", padx=5, expand=True, fill="x")
-            self.speak_button.configure(state="disabled")
-            self.save_button.configure(state="disabled")
-            self.voice_combobox.configure(state="disabled")
-        else:
-            self.stop_button.pack_forget()
-            self.speak_button.pack(side="left", padx=5, expand=True, fill="x")
-            self.save_button.pack(side="left", padx=5, expand=True, fill="x")
-            self.speak_button.configure(state="normal")
-            self.save_button.configure(state="normal")
-            self.voice_combobox.configure(state="normal")
-            self.update_idletasks() # Ensure UI updates layout changes
-
     def on_speak(self):
         if self.is_speaking: return
 
         text = self.text_input.get("1.0", "end-1c").strip()
         if not text:
-            self.update_status("Error: Text input is empty.")
+            self.update_detailed_status("Error: Text input is empty.")
             return
 
         selected_voice_short_name = self.get_selected_voice_short_name()
         if not selected_voice_short_name:
-            self.update_status("Error: No valid voice selected.")
+            self.update_detailed_status("Error: No valid voice selected.")
             return
 
         self._set_speaking_state(True)
-        self.update_status(f"Synthesizing with {selected_voice_short_name}...")
+        self.update_detailed_status(f"Synthesizing with {selected_voice_short_name}...")
 
         temp_dir = tempfile.gettempdir()
         temp_audio_path = os.path.join(temp_dir, TEMP_AUDIO_FILENAME)
@@ -466,26 +500,26 @@ class EdgeTTSApp(ctk.CTk):
                 success = self._synthesize_speech(text, selected_voice_short_name, temp_audio_path)
 
                 if self.stop_requested.is_set():
-                    self.after(0, self.update_status, "Speak operation stopped.")
+                    self.after(0, self.update_detailed_status, "Speak operation stopped.")
                     if os.path.exists(temp_audio_path): os.remove(temp_audio_path)
                     return
 
                 if success:
-                    self.after(0, self.update_status, "Playing audio...")
+                    self.after(0, self.update_detailed_status, "Playing audio...")
                     if self.stop_requested.is_set(): # Check one more time before playsound
-                        self.after(0, self.update_status, "Speak operation stopped before playback.")
+                        self.after(0, self.update_detailed_status, "Speak operation stopped before playback.")
                         if os.path.exists(temp_audio_path): os.remove(temp_audio_path)
                         return
 
                     try:
                         playsound(temp_audio_path) # This blocks this thread
                         if not self.stop_requested.is_set(): # Only update if not stopped
-                             self.after(0, self.update_status, "Playback finished. Ready.")
+                             self.after(0, self.update_detailed_status, "Playback finished. Ready.")
                         else:
-                             self.after(0, self.update_status, "Playback stopped/skipped. Ready.")
+                             self.after(0, self.update_detailed_status, "Playback stopped/skipped. Ready.")
                     except Exception as e:
                         if not self.stop_requested.is_set():
-                            self.after(0, self.update_status, f"Error playing audio: {e}")
+                            self.after(0, self.update_detailed_status, f"Error playing audio: {e}")
                     finally:
                         if os.path.exists(temp_audio_path):
                             try: os.remove(temp_audio_path)
@@ -504,12 +538,12 @@ class EdgeTTSApp(ctk.CTk):
 
         text = self.text_input.get("1.0", "end-1c").strip()
         if not text:
-            self.update_status("Error: Text input is empty.")
+            self.update_detailed_status("Error: Text input is empty.")
             return
 
         selected_voice_short_name = self.get_selected_voice_short_name()
         if not selected_voice_short_name:
-            self.update_status("Error: No valid voice selected.")
+            self.update_detailed_status("Error: No valid voice selected.")
             return
 
         filepath = tkinter.filedialog.asksaveasfilename(
@@ -518,21 +552,21 @@ class EdgeTTSApp(ctk.CTk):
             title="Save Speech As Audio"
         )
         if not filepath:
-            self.update_status("Save cancelled. Ready.")
+            self.update_detailed_status("Save cancelled. Ready.")
             return
 
         self._set_speaking_state(True) # Use speaking state to manage buttons
-        self.update_status(f"Synthesizing and saving to {os.path.basename(filepath)}...")
+        self.update_detailed_status(f"Synthesizing and saving to {os.path.basename(filepath)}...")
 
         def synthesis_thread():
             try:
                 success = self._synthesize_speech(text, selected_voice_short_name, filepath)
                 if self.stop_requested.is_set():
-                    self.after(0, self.update_status, "Save operation stopped.")
+                    self.after(0, self.update_detailed_status, "Save operation stopped.")
                     return
 
                 if success:
-                    self.after(0, self.update_status, f"Audio saved to {os.path.basename(filepath)}. Ready.")
+                    self.after(0, self.update_detailed_status, f"Audio saved to {os.path.basename(filepath)}. Ready.")
             finally:
                 if not self.stop_requested.is_set():
                     self.after(0, lambda: self._set_speaking_state(False))
@@ -540,13 +574,13 @@ class EdgeTTSApp(ctk.CTk):
         threading.Thread(target=synthesis_thread, daemon=True).start()
 
     def on_stop(self):
-        self.update_status("Stop request received...")
+        self.update_detailed_status("Stop request received...")
         self.stop_requested.set()
         self._set_speaking_state(False) # Immediately reset UI buttons
         # Note: This won't instantly kill the playsound or edge-tts network call if already deep into it,
         # but it will prevent new actions and update UI state.
         # The running threads will check the stop_requested event at their earliest convenience.
-        self.update_status("Operation stopped. Ready.")
+        self.update_detailed_status("Operation stopped. Ready.")
 
     def on_load_file(self):
         """Handle loading text from a file."""
@@ -566,11 +600,11 @@ class EdgeTTSApp(ctk.CTk):
             if text:
                 self.text_input.delete("1.0", "end")
                 self.text_input.insert("1.0", text)
-                self.update_status(f"Loaded text from {os.path.basename(filepath)}")
+                self.update_detailed_status(f"Loaded text from {os.path.basename(filepath)}")
             else:
-                self.update_status("Error: Could not read text from file.")
+                self.update_detailed_status("Error: Could not read text from file.")
         except Exception as e:
-            self.update_status(f"Error loading file: {str(e)}")
+            self.update_detailed_status(f"Error loading file: {str(e)}")
 
     def _read_file_content(self, filepath):
         """Read content from various file types."""
@@ -606,6 +640,52 @@ class EdgeTTSApp(ctk.CTk):
         # For RTF files, we'll use a simple text reading approach
         # as proper RTF parsing would require additional dependencies
         return self._read_text_file(filepath)
+
+    def _synthesize_speech(self, text, voice_short_name, output_filepath):
+        try:
+            if self.stop_requested.is_set():
+                self.after(0, self.update_detailed_status, "Operation stopped before synthesis.")
+                return False
+
+            communicate = edge_tts.Communicate(text, voice_short_name)
+            asyncio.run(communicate.save(output_filepath))
+
+            if self.stop_requested.is_set(): # Check again after potentially long synthesis
+                self.after(0, self.update_detailed_status, "Operation stopped after synthesis, before playback/save completion.")
+                if os.path.exists(output_filepath) and output_filepath.endswith(TEMP_AUDIO_FILENAME):
+                    try: os.remove(output_filepath) # Clean up temp file if stop requested
+                    except Exception: pass
+                return False
+            return True
+        except Exception as e:
+            self.after(0, self.update_detailed_status, f"Synthesis error: {e}")
+            return False
+
+    def _set_speaking_state(self, speaking: bool):
+        self.is_speaking = speaking
+        self.stop_requested.clear() # Clear stop flag when starting a new operation
+
+        if speaking:
+            self.speak_button.pack_forget()
+            self.save_button.pack_forget()
+            self.stop_button.pack(side="left", padx=5, expand=True, fill="x")
+            self.speak_button.configure(state="disabled")
+            self.save_button.configure(state="disabled")
+            self.voice_combobox.configure(state="disabled")
+        else:
+            self.stop_button.pack_forget()
+            self.speak_button.pack(side="left", padx=5, expand=True, fill="x")
+            self.save_button.pack(side="left", padx=5, expand=True, fill="x")
+            self.speak_button.configure(state="normal")
+            self.save_button.configure(state="normal")
+            self.voice_combobox.configure(state="normal")
+            self.update_idletasks() # Ensure UI updates layout changes
+
+    def get_selected_voice_short_name(self):
+        selected_display_name = self.voice_combobox.get()
+        if selected_display_name in ["Loading voices...", "Error loading voices", "No voices found", "No match found"]:
+            return None
+        return self.voice_map.get(selected_display_name)
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
