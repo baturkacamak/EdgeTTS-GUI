@@ -6,6 +6,7 @@ import asyncio
 import threading
 import os
 import tempfile
+import json
 from playsound import playsound # Using playsound 1.2.2
 import time # For small delay in search
 import docx  # For DOCX files
@@ -21,6 +22,7 @@ DEFAULT_COLOR_THEME = "blue"
 TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp files
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
+CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".edge_tts_gui_config.json")  # Config file in user's home directory
 
 # Supported input file formats
 SUPPORTED_INPUT_FORMATS = [
@@ -206,6 +208,7 @@ class EdgeTTSApp(ctk.CTk):
         self.voices_list_full = [] # Full list of voice dicts
         self.voice_map = {}        # Maps display name to short name
         self.display_voices_full = [] # Full list of display names for combobox
+        self.last_selected_voice = self.load_config().get('last_voice', DEFAULT_VOICE)  # Load last selected voice
 
         self.is_speaking = False
         self.stop_requested = threading.Event() # For stopping speak/save operations
@@ -319,6 +322,27 @@ class EdgeTTSApp(ctk.CTk):
             self.after(0, self.voice_combobox.set, "Error loading voices")
             self.after(0, self.voice_search_entry.configure, {"state": "normal"}) # Allow typing even if error
 
+    def load_config(self):
+        """Load configuration from file"""
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Error loading config: {e}")
+        return {}
+
+    def save_config(self):
+        """Save configuration to file"""
+        try:
+            config = {
+                'last_voice': self.voice_combobox.get()
+            }
+            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(config, f)
+        except Exception as e:
+            print(f"Error saving config: {e}")
 
     def update_voice_combobox_post_load(self):
         """Update the combobox with loaded voices"""
@@ -329,8 +353,14 @@ class EdgeTTSApp(ctk.CTk):
             # Update the dropdown values
             self.voice_dropdown.configure(values=self.display_voices_full)
             
-            # Set default voice if available, otherwise use first voice
-            default_voice = next((v for v in self.display_voices_full if DEFAULT_VOICE in v), self.display_voices_full[0])
+            # Try to set last selected voice, fallback to default or first voice
+            default_voice = next(
+                (v for v in self.display_voices_full if self.last_selected_voice in v),
+                next(
+                    (v for v in self.display_voices_full if DEFAULT_VOICE in v),
+                    self.display_voices_full[0]
+                )
+            )
             self.voice_combobox.set(default_voice)
             
             # Enable the combobox and buttons
@@ -350,16 +380,15 @@ class EdgeTTSApp(ctk.CTk):
             self.update_status("No voices found.")
 
     def on_voice_selected_from_combobox(self, choice):
-        # This callback is useful if you need to do something specific
-        # when a voice is picked, other than just it being set.
-        # For now, we don't need to do much here as the `get()` method
-        # will retrieve the current selection.
-        # print(f"Voice selected: {choice}")
+        # Save the selected voice to config when changed
+        self.save_config()
         pass
 
     def on_voice_selected_from_dropdown(self, choice):
         """Callback for when a voice is selected from the dropdown"""
         self.voice_combobox.set(choice)  # Update the combobox text
+        # Save the selected voice to config when changed
+        self.save_config()
         # The regular combobox callback will handle the rest
         self.on_voice_selected_from_combobox(choice)
 
