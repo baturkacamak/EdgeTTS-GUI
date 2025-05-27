@@ -33,8 +33,10 @@ COLORS = {
     "secondary": "#2B88D8",    # Lighter blue
     "accent": "#00B294",       # Teal
     "error": "#E74C3C",        # Red
+    "error_dark": "#C0392B",   # Darker red for hover
     "success": "#2ECC71",      # Green
-    "warning": "#F39C12",      # Orange
+    "warning": "#D35400",      # Darker orange for pause button
+    "warning_dark": "#A04000", # Even darker orange for hover
     "background_light": "#F5F5F5",
     "background_dark": "#1E1E1E",
     "text_light": "#2D2D2D",
@@ -1032,7 +1034,7 @@ class EdgeTTSApp(ctk.CTk):
             font=button_font,
             height=45,
             fg_color=COLORS["error"],
-            hover_color="#C0392B",
+            hover_color=COLORS["error_dark"],
             corner_radius=8
         )
 
@@ -1044,7 +1046,7 @@ class EdgeTTSApp(ctk.CTk):
             font=button_font,
             height=45,
             fg_color=COLORS["warning"],
-            hover_color="#E67E22",
+            hover_color=COLORS["warning_dark"],
             corner_radius=8
         )
 
