@@ -630,8 +630,12 @@ class EdgeTTSApp(ctk.CTk):
     def play_audio(self, audio_path):
         """Play audio using pygame mixer"""
         try:
-            # Initialize mixer just before playing
-            pygame.mixer.init()
+            # Make sure mixer is not initialized before initializing
+            if pygame.mixer.get_init():
+                pygame.mixer.quit()
+            
+            # Initialize mixer with good settings for speech
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
             pygame.mixer.music.load(audio_path)
             pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
             pygame.mixer.music.play()
@@ -646,28 +650,38 @@ class EdgeTTSApp(ctk.CTk):
             
         except Exception as e:
             self.update_detailed_status(f"Error playing audio: {e}")
+            if pygame.mixer.get_init():
+                pygame.mixer.quit()
             self._set_speaking_state(False)  # Reset state on error
 
     def update_progress(self):
         """Update progress bar and time display"""
-        if pygame.mixer.get_init() and (pygame.mixer.music.get_busy() or self.is_paused) and not self.stop_requested.is_set():
-            current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
-            if current_pos < 0:  # When paused, get_pos returns -1
-                current_pos = float(self.progress_bar.get()) * self.audio_length
-            progress = current_pos / self.audio_length if self.audio_length > 0 else 0
-            self.progress_bar.set(progress)
-            self.current_time.configure(text=self.format_time(current_pos))
-            self.update_progress_id = self.after(100, self.update_progress)
-        else:
-            self.progress_bar.set(0)
-            self.current_time.configure(text="0:00")
-            if self.update_progress_id:
-                self.after_cancel(self.update_progress_id)
-                self.update_progress_id = None
-            # Only reset speaking state if we're not paused
-            if not self.is_paused and pygame.mixer.get_init() and not pygame.mixer.music.get_busy():
-                pygame.mixer.quit()
-                self.after(0, lambda: self._set_speaking_state(False))
+        try:
+            if pygame.mixer.get_init() and (pygame.mixer.music.get_busy() or self.is_paused) and not self.stop_requested.is_set():
+                current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
+                if current_pos < 0:  # When paused, get_pos returns -1
+                    current_pos = float(self.progress_bar.get()) * self.audio_length
+                progress = current_pos / self.audio_length if self.audio_length > 0 else 0
+                self.progress_bar.set(progress)
+                self.current_time.configure(text=self.format_time(current_pos))
+                self.update_progress_id = self.after(100, self.update_progress)
+            else:
+                self.progress_bar.set(0)
+                self.current_time.configure(text="0:00")
+                if self.update_progress_id:
+                    self.after_cancel(self.update_progress_id)
+                    self.update_progress_id = None
+                # Only reset speaking state if we're not paused and mixer is initialized
+                try:
+                    if not self.is_paused and pygame.mixer.get_init() and not pygame.mixer.music.get_busy():
+                        pygame.mixer.quit()
+                        self.after(0, lambda: self._set_speaking_state(False))
+                except pygame.error:
+                    # If there's an error with the mixer, just reset the speaking state
+                    self.after(0, lambda: self._set_speaking_state(False))
+        except Exception as e:
+            print(f"Error updating progress: {e}")
+            self.after(0, lambda: self._set_speaking_state(False))
 
     def format_time(self, seconds):
         """Format seconds to MM:SS"""
