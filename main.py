@@ -11,7 +11,7 @@ import time # For small delay in search
 import docx  # For DOCX files
 import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
-from CTkScrollableDropdown import CTkScrollableDropdown
+from CTkScrollableDropdown.ctk_scrollable_dropdown_keyboard import CTkScrollableDropdownKeyboard
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
@@ -251,7 +251,7 @@ class EdgeTTSApp(ctk.CTk):
         self.voice_combobox.set("Loading voices...")
         
         # Initialize the scrollable dropdown with autocomplete
-        self.voice_dropdown = CTkScrollableDropdown(
+        self.voice_dropdown = CTkScrollableDropdownKeyboard(
             self.voice_combobox,
             values=["Loading voices..."],  # Start with loading message
             command=self.on_voice_selected_from_dropdown,
