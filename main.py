@@ -16,7 +16,7 @@ from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_stat
 
 # --- Global Variables ---
 WINDOW_TITLE = "Edge TTS GUI"
-WINDOW_SIZE = "700x650"
+WINDOW_SIZE = "700x500"  # Reduced initial height
 DEFAULT_APPEARANCE_MODE = "System"
 DEFAULT_COLOR_THEME = "blue"
 TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp files
@@ -201,6 +201,7 @@ class EdgeTTSApp(ctk.CTk):
 
         self.title(WINDOW_TITLE)
         self.geometry(WINDOW_SIZE)
+        self.resizable(True, True)  # Allow window resizing
 
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
@@ -295,6 +296,16 @@ class EdgeTTSApp(ctk.CTk):
         self.progress_bar.set(0)
 
         self.load_initial_voices()
+
+        # Add after all components are created
+        self.after(100, self.adjust_window_size)  # Schedule window adjustment after components are rendered
+
+    def adjust_window_size(self):
+        """Adjust window size to fit components"""
+        self.update_idletasks()  # Ensure all widgets are rendered
+        width = self.winfo_width()  # Keep current width
+        height = self.main_frame.winfo_reqheight() + 40  # Add padding
+        self.geometry(f"{width}x{height}")
 
     def update_detailed_status(self, message, cache_info=None):
         """Update all status components with detailed information"""
