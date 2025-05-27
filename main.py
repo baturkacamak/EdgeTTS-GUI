@@ -335,6 +335,57 @@ PREVIEW_TEXTS = {
     "default": {"rate": "Speed test {speed}×", "pitch": "Pitch test"}
 }
 
+class ToolTip:
+    """Create a tooltip for a given widget with modern styling."""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.leave)
+        self.widget.bind("<ButtonPress>", self.leave)
+        self.scheduled_id = None
+
+    def enter(self, event=None):
+        # Schedule tooltip to appear after a short delay
+        self.scheduled_id = self.widget.after(500, self.show_tooltip)
+
+    def leave(self, event=None):
+        # Cancel scheduled tooltip
+        if self.scheduled_id:
+            self.widget.after_cancel(self.scheduled_id)
+            self.scheduled_id = None
+        # Destroy tooltip if it exists
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+    def show_tooltip(self):
+        # Get screen coordinates of the widget
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+
+        # Create tooltip window
+        self.tooltip = tk = tkinter.Toplevel(self.widget)
+        tk.wm_overrideredirect(True)
+        tk.wm_geometry(f"+{x}+{y}")
+
+        # Create tooltip content with modern styling
+        label = tkinter.Label(
+            tk,
+            text=self.text,
+            justify=tkinter.LEFT,
+            background="#2B2B2B",
+            foreground="white",
+            relief=tkinter.SOLID,
+            borderwidth=1,
+            font=("Segoe UI", "9", "normal"),
+            padx=5,
+            pady=3
+        )
+        label.pack()
+
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -353,6 +404,13 @@ class EdgeTTSApp(ctk.CTk):
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
 
+        # Setup keyboard shortcuts
+        self.bind("<Control-o>", lambda e: self.on_load_file())  # Ctrl+O to open file
+        self.bind("<Control-s>", lambda e: self.on_save_as())    # Ctrl+S to save audio
+        self.bind("<space>", self.handle_space_key)              # Space to play/pause
+        self.bind("<Escape>", lambda e: self.on_stop())          # Esc to stop
+        self.bind("<Control-q>", self.on_closing)                # Ctrl+Q to quit
+        
         # Function to get header color based on theme
         self.get_header_color = lambda: COLORS["header_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["header_light"]
 
@@ -1137,6 +1195,7 @@ class EdgeTTSApp(ctk.CTk):
             corner_radius=8
         )
         self.speak_button.grid(row=0, column=0, sticky="ew", padx=5)
+        ToolTip(self.speak_button, "Start speaking (Space)")
 
         # Stop button
         self.stop_button = ctk.CTkButton(
@@ -1149,6 +1208,7 @@ class EdgeTTSApp(ctk.CTk):
             hover_color=COLORS["error_dark"],
             corner_radius=8
         )
+        ToolTip(self.stop_button, "Stop speaking (Esc)")
 
         # Pause/Resume button
         self.pause_button = ctk.CTkButton(
@@ -1161,6 +1221,7 @@ class EdgeTTSApp(ctk.CTk):
             hover_color=COLORS["warning_dark"],
             corner_radius=8
         )
+        ToolTip(self.pause_button, "Pause/Resume speaking (Space)")
 
         # Save button with modern styling
         self.save_button = ctk.CTkButton(
@@ -1174,6 +1235,7 @@ class EdgeTTSApp(ctk.CTk):
             corner_radius=8
         )
         self.save_button.grid(row=0, column=1, sticky="ew", padx=5)
+        ToolTip(self.save_button, "Save audio file (Ctrl+S)")
 
         # Initially hide stop and pause buttons
         self.stop_button.grid_remove()
@@ -1537,6 +1599,18 @@ class EdgeTTSApp(ctk.CTk):
                         pygame.mixer.music.set_pos(current_pos)
                     except:
                         pass
+
+    def handle_space_key(self, event=None):
+        """Handle space key press for play/pause functionality"""
+        # Don't trigger if focus is in text input
+        if str(self.focus_get()).endswith("ctktextbox"):
+            return
+            
+        if self.is_speaking:
+            if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
+                self.on_pause_resume()
+        else:
+            self.on_speak()
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
