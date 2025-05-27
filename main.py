@@ -244,19 +244,29 @@ class EdgeTTSApp(ctk.CTk):
         self.voice_label = ctk.CTkLabel(self.voice_selection_frame, text="Select Voice:")
         self.voice_label.pack(side="left", padx=(0, 10))
 
-        # Replace the custom combobox with native ttk.Combobox
+        # Configure ttk style for the combobox
         style = ttk.Style()
-        style.configure('Custom.TCombobox', postoffset=(0, -5))  # Adjust dropdown position
+        style.configure('Custom.TCombobox', 
+            background='white',
+            fieldbackground='white',
+            selectbackground='#0078D4',
+            selectforeground='white'
+        )
+        style.map('Custom.TCombobox',
+            fieldbackground=[('readonly', 'white')],
+            selectbackground=[('readonly', '#0078D4')],
+            selectforeground=[('readonly', 'white')]
+        )
         
         self.voice_combobox = ttk.Combobox(
             self.voice_selection_frame,
             values=["Loading voices..."],
-            state="disabled",
-            width=60,  # Wider to accommodate voice names
-            height=15,  # Limit dropdown height to show 15 items
+            state="readonly",  # Changed from disabled to readonly
+            width=60,
+            height=15,
             style='Custom.TCombobox'
         )
-        self.voice_combobox.pack(fill="x", expand=True)
+        self.voice_combobox.pack(fill="x", expand=True, padx=5)  # Added padding
         self.voice_combobox.set("Loading voices...")
         self.voice_combobox.bind('<<ComboboxSelected>>', lambda e: self.on_voice_selected_from_combobox(self.voice_combobox.get()))
 
