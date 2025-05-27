@@ -12,6 +12,7 @@ import time # For small delay in search
 import docx  # For DOCX files
 import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
+import pygame  # For advanced audio playback
 from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
 
 # --- Global Variables ---
@@ -52,6 +53,10 @@ ICONS = {
     "CLOCK": "🕒",
     "COUNT": "🔢",
     "PLAY": "▶️",
+    "PAUSE": "⏸️",
+    "RESUME": "⏵️",
+    "VOLUME": "🔈",
+    "SEEK": "⏩",
     "TEXT": "📝",
     "LOAD": "📂",
 }
@@ -229,6 +234,9 @@ class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Initialize pygame mixer
+        pygame.mixer.init()
+        
         self.title(WINDOW_TITLE)
         self.geometry(WINDOW_SIZE)
         self.minsize(800, 600)  # Set minimum window size
@@ -236,6 +244,12 @@ class EdgeTTSApp(ctk.CTk):
         ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
         ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
 
+        # Audio playback state
+        self.is_paused = False
+        self.current_audio_file = None
+        self.audio_length = 0
+        self.update_progress_id = None
+        
         # Configure grid layout (3x1)
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -571,32 +585,98 @@ class EdgeTTSApp(ctk.CTk):
 
                 if success:
                     self.after(0, self.update_detailed_status, "Playing audio...")
-                    if self.stop_requested.is_set(): # Check one more time before playsound
+                    if self.stop_requested.is_set():
                         self.after(0, self.update_detailed_status, "Speak operation stopped before playback.")
                         if os.path.exists(temp_audio_path): os.remove(temp_audio_path)
                         return
 
                     try:
-                        playsound(temp_audio_path) # This blocks this thread
-                        if not self.stop_requested.is_set(): # Only update if not stopped
-                             self.after(0, self.update_detailed_status, "Playback finished. Ready.")
+                        self.current_audio_file = temp_audio_path
+                        self.play_audio(temp_audio_path)
+                        if not self.stop_requested.is_set():
+                            self.after(0, self.update_detailed_status, "Playback finished. Ready.")
                         else:
-                             self.after(0, self.update_detailed_status, "Playback stopped/skipped. Ready.")
+                            self.after(0, self.update_detailed_status, "Playback stopped/skipped. Ready.")
                     except Exception as e:
                         if not self.stop_requested.is_set():
                             self.after(0, self.update_detailed_status, f"Error playing audio: {e}")
                     finally:
-                        if os.path.exists(temp_audio_path):
+                        if os.path.exists(temp_audio_path) and not pygame.mixer.music.get_busy():
                             try: os.remove(temp_audio_path)
                             except Exception as e_del: print(f"Error deleting temp file: {e_del}")
             finally:
-                # Ensure UI is reset regardless of how the thread exits
-                # if stop was requested, _set_speaking_state(False) might have been called by on_stop
                 if not self.stop_requested.is_set():
                     self.after(0, lambda: self._set_speaking_state(False))
-                # If stop was requested, on_stop handles resetting the UI.
 
         threading.Thread(target=synthesis_and_playback_thread, daemon=True).start()
+
+    def play_audio(self, audio_path):
+        """Play audio using pygame mixer"""
+        try:
+            pygame.mixer.music.load(audio_path)
+            pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
+            pygame.mixer.music.play()
+            
+            # Get audio length
+            audio = pygame.mixer.Sound(audio_path)
+            self.audio_length = audio.get_length()
+            self.total_time.configure(text=self.format_time(self.audio_length))
+            
+            # Start progress updates
+            self.update_progress()
+            
+        except Exception as e:
+            self.update_detailed_status(f"Error playing audio: {e}")
+
+    def update_progress(self):
+        """Update progress bar and time display"""
+        if pygame.mixer.music.get_busy() and not self.stop_requested.is_set():
+            current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
+            progress = current_pos / self.audio_length if self.audio_length > 0 else 0
+            self.progress_bar.set(progress)
+            self.current_time.configure(text=self.format_time(current_pos))
+            self.update_progress_id = self.after(100, self.update_progress)
+        else:
+            self.progress_bar.set(0)
+            self.current_time.configure(text="0:00")
+            if self.update_progress_id:
+                self.after_cancel(self.update_progress_id)
+                self.update_progress_id = None
+
+    def format_time(self, seconds):
+        """Format seconds to MM:SS"""
+        minutes = int(seconds // 60)
+        seconds = int(seconds % 60)
+        return f"{minutes}:{seconds:02d}"
+
+    def on_pause_resume(self):
+        """Handle pause/resume button click"""
+        if self.is_paused:
+            pygame.mixer.music.unpause()
+            self.pause_button.configure(text=f"{ICONS['PAUSE']} Pause")
+            self.is_paused = False
+            self.update_detailed_status("Playback resumed.")
+        else:
+            pygame.mixer.music.pause()
+            self.pause_button.configure(text=f"{ICONS['RESUME']} Resume")
+            self.is_paused = True
+            self.update_detailed_status("Playback paused.")
+
+    def on_volume_change(self, value):
+        """Handle volume slider change"""
+        pygame.mixer.music.set_volume(float(value) / 100)
+
+    def on_progress_click(self, event):
+        """Handle click on progress bar for seeking"""
+        if pygame.mixer.music.get_busy():
+            # Calculate relative position
+            width = self.progress_bar.winfo_width()
+            relative_pos = event.x / width
+            # Set position
+            pygame.mixer.music.set_pos(relative_pos * self.audio_length)
+            # Update display
+            self.progress_bar.set(relative_pos)
+            self.current_time.configure(text=self.format_time(relative_pos * self.audio_length))
 
     def on_save_as(self):
         if self.is_speaking: return
@@ -639,12 +719,16 @@ class EdgeTTSApp(ctk.CTk):
         threading.Thread(target=synthesis_thread, daemon=True).start()
 
     def on_stop(self):
+        """Handle stop button click"""
         self.update_detailed_status("Stop request received...")
         self.stop_requested.set()
-        self._set_speaking_state(False) # Immediately reset UI buttons
-        # Note: This won't instantly kill the playsound or edge-tts network call if already deep into it,
-        # but it will prevent new actions and update UI state.
-        # The running threads will check the stop_requested event at their earliest convenience.
+        pygame.mixer.music.stop()
+        self._set_speaking_state(False)
+        self.progress_bar.set(0)
+        self.current_time.configure(text="0:00")
+        if self.update_progress_id:
+            self.after_cancel(self.update_progress_id)
+            self.update_progress_id = None
         self.update_detailed_status("Operation stopped. Ready.")
 
     def on_load_file(self):
@@ -728,23 +812,26 @@ class EdgeTTSApp(ctk.CTk):
 
     def _set_speaking_state(self, speaking: bool):
         self.is_speaking = speaking
-        self.stop_requested.clear() # Clear stop flag when starting a new operation
+        self.stop_requested.clear()
+        self.is_paused = False
 
         if speaking:
-            self.speak_button.pack_forget()
-            self.save_button.pack_forget()
-            self.stop_button.pack(side="left", padx=5, expand=True, fill="x")
+            self.speak_button.grid_remove()
+            self.save_button.grid_remove()
+            self.stop_button.grid(row=0, column=0, sticky="ew", padx=5)
+            self.pause_button.grid(row=0, column=1, sticky="ew", padx=5)
             self.speak_button.configure(state="disabled")
             self.save_button.configure(state="disabled")
             self.voice_combobox.configure(state="disabled")
         else:
-            self.stop_button.pack_forget()
-            self.speak_button.pack(side="left", padx=5, expand=True, fill="x")
-            self.save_button.pack(side="left", padx=5, expand=True, fill="x")
+            self.stop_button.grid_remove()
+            self.pause_button.grid_remove()
+            self.speak_button.grid(row=0, column=0, sticky="ew", padx=5)
+            self.save_button.grid(row=0, column=2, sticky="ew", padx=5)
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
             self.voice_combobox.configure(state="normal")
-            self.update_idletasks() # Ensure UI updates layout changes
+            self.update_idletasks()
 
     def get_selected_voice_short_name(self):
         selected_display_name = self.voice_combobox.get()
@@ -860,7 +947,7 @@ class EdgeTTSApp(ctk.CTk):
         # Button container
         button_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
         button_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10))
-        button_frame.grid_columnconfigure((0, 1), weight=1)
+        button_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
         # Modern button styling
         button_font = ctk.CTkFont(size=14, weight="bold")
@@ -890,6 +977,18 @@ class EdgeTTSApp(ctk.CTk):
             corner_radius=8
         )
 
+        # Pause/Resume button (initially hidden)
+        self.pause_button = ctk.CTkButton(
+            button_frame,
+            text=f"{ICONS['PAUSE']} Pause",
+            command=self.on_pause_resume,
+            font=button_font,
+            height=45,
+            fg_color=COLORS["warning"],
+            hover_color="#E67E22",
+            corner_radius=8
+        )
+
         # Save button with modern styling
         self.save_button = ctk.CTkButton(
             button_frame,
@@ -901,12 +1000,58 @@ class EdgeTTSApp(ctk.CTk):
             hover_color="#00A080",
             corner_radius=8
         )
-        self.save_button.grid(row=0, column=1, sticky="ew", padx=5)
+        self.save_button.grid(row=0, column=2, sticky="ew", padx=5)
+
+        # Add playback controls frame
+        playback_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        playback_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10))
+        playback_frame.grid_columnconfigure(1, weight=1)  # Give weight to progress bar
+
+        # Progress bar and time labels
+        self.current_time = ctk.CTkLabel(playback_frame, text="0:00", font=("Helvetica", 10))
+        self.current_time.grid(row=0, column=0, padx=(0, 5))
+
+        self.progress_bar = ctk.CTkProgressBar(
+            playback_frame,
+            mode="determinate",
+            height=10,
+            corner_radius=3
+        )
+        self.progress_bar.grid(row=0, column=1, sticky="ew", padx=5)
+        self.progress_bar.set(0)
+
+        self.total_time = ctk.CTkLabel(playback_frame, text="0:00", font=("Helvetica", 10))
+        self.total_time.grid(row=0, column=2, padx=(5, 0))
+
+        # Volume control
+        volume_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        volume_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=(0, 10))
+        volume_frame.grid_columnconfigure(1, weight=1)
+
+        volume_label = ctk.CTkLabel(
+            volume_frame,
+            text=f"{ICONS['VOLUME']} Volume",
+            font=("Helvetica", 12)
+        )
+        volume_label.grid(row=0, column=0, padx=(0, 10))
+
+        self.volume_slider = ctk.CTkSlider(
+            volume_frame,
+            from_=0,
+            to=100,
+            number_of_steps=100,
+            command=self.on_volume_change
+        )
+        self.volume_slider.grid(row=0, column=1, sticky="ew")
+        self.volume_slider.set(70)  # Default volume
+
+        # Bind progress bar click for seeking
+        self.progress_bar.bind("<Button-1>", self.on_progress_click)
 
     def setup_status_section(self):
         """Setup status section with modern visualization"""
         status_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        status_frame.grid(row=2, column=0, sticky="new", padx=10, pady=5)
+        status_frame.grid(row=3, column=0, sticky="new", padx=10, pady=5)  # Changed row to 3 since controls now use row 2
         status_frame.grid_columnconfigure(0, weight=1)
 
         # Status header
@@ -961,17 +1106,6 @@ class EdgeTTSApp(ctk.CTk):
             text_color=("gray20", "gray80")
         )
         self.last_updated.grid(row=3, column=0, sticky="w", pady=2)
-
-        # Modern progress bar
-        self.progress_bar = ctk.CTkProgressBar(
-            status_frame,
-            height=6,
-            corner_radius=3,
-            fg_color=("gray80", "gray20"),
-            progress_color=COLORS["primary"]
-        )
-        self.progress_bar.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
-        self.progress_bar.set(0)
 
     def toggle_theme(self):
         """Toggle between light and dark theme"""

@@ -4,3 +4,4 @@ playsound==1.2.2
 watchdog
 python-docx
 chardet
+pygame
