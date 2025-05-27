@@ -9,19 +9,24 @@ import tempfile
 from playsound import playsound # Using playsound 1.2.2
 import time # For small delay in search
 
-# --- Constants ---
-DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
+# --- Global Variables ---
+WINDOW_TITLE = "Edge TTS GUI"
+WINDOW_SIZE = "700x650"
+DEFAULT_APPEARANCE_MODE = "System"
+DEFAULT_COLOR_THEME = "blue"
 TEMP_AUDIO_FILENAME = "temp_audio_edge_tts.mp3"
+DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
+DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
 
 class EdgeTTSApp(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.title("Edge TTS GUI")
-        self.geometry("700x650") # Increased height for search entry
+        self.title(WINDOW_TITLE)
+        self.geometry(WINDOW_SIZE)
 
-        ctk.set_appearance_mode("System")
-        ctk.set_default_color_theme("blue")
+        ctk.set_appearance_mode(DEFAULT_APPEARANCE_MODE)
+        ctk.set_default_color_theme(DEFAULT_COLOR_THEME)
 
         self.voices_list_full = [] # Full list of voice dicts
         self.voice_map = {}        # Maps display name to short name
@@ -118,7 +123,7 @@ class EdgeTTSApp(ctk.CTk):
     def update_voice_combobox_post_load(self):
         if self.display_voices_full:
             self.voice_combobox.configure(values=self.display_voices_full)
-            default_selection = next((v for v in self.display_voices_full if "JennyNeural (en-US)" in v), self.display_voices_full[0])
+            default_selection = next((v for v in self.display_voices_full if DEFAULT_VOICE in v), self.display_voices_full[0])
             self.voice_combobox.set(default_selection)
             self.update_status("Voices loaded. Ready.")
             self.speak_button.configure(state="normal")
