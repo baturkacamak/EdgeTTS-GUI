@@ -34,7 +34,7 @@ EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interf
 
 ## Installation 🔧
 
-1. **Download the latest release** from the [releases page](https://github.com/your-username/EdgeTTS-CustomTkinter-GUI/releases).
+1. **Download the latest release** from the [releases page](https://github.com/baturkacamak/EdgeTTS-CustomTkinter-GUI/releases).
 
 2. **Run the installer script:**
     ```bash
@@ -66,4 +66,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact 📧
 
-For questions or feedback, please contact the project maintainers at [your-email@example.com].
+For questions or feedback, please contact the project maintainers at [hello@batur.info].
