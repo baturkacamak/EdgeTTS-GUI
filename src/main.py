@@ -1269,10 +1269,15 @@ class EdgeTTSApp(ctk.CTk):
         self.save_config()
 
     def get_text_from_cursor(self):
-        """Get text from cursor position to the end of the text"""
+        """Get text from cursor position to the end of the text. If cursor is at end or not present, return the whole text."""
         try:
             cursor_pos = self.text_input.index("insert")
-            text = self.text_input.get(cursor_pos, "end-1c")
+            end_pos = self.text_input.index("end-1c")
+            # If cursor is at the end, treat as 'read all'
+            if cursor_pos == end_pos:
+                text = self.text_input.get("1.0", "end-1c")
+            else:
+                text = self.text_input.get(cursor_pos, "end-1c")
             return text.strip()
         except Exception as e:
             logging.error(f"Error getting text from cursor: {e}")
@@ -1286,8 +1291,13 @@ class EdgeTTSApp(ctk.CTk):
             text = self.text_input.get("sel.first", "sel.last").strip()
             if not text:  # No selection, try getting text from cursor
                 text = self.get_text_from_cursor()
+                if not text:
+                    # Fallback: read all text
+                    text = self.text_input.get("1.0", "end-1c").strip()
         except tkinter.TclError:  # No selection
             text = self.get_text_from_cursor()
+            if not text:
+                text = self.text_input.get("1.0", "end-1c").strip()
 
         if not text:
             self.update_detailed_status("Error: No text to read.")
