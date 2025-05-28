@@ -1,36 +1,22 @@
 # EdgeTTS-CustomTkinter-GUI
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) 
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
 A user-friendly, cross-platform graphical interface for Microsoft's Edge Text-to-Speech service. Built with Python and CustomTkinter, allowing easy text-to-speech conversion with voice selection, playback, and audio file saving.
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
-## Introduction 🔊
-
-EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interface for converting text to speech using Microsoft's Edge TTS service. This tool is ideal for users who need to generate speech from text efficiently and with a variety of voice options.
+![EdgeTTS-GUI Screenshot](screenshot.png)
 
 ## Features
 
-- ✅ **Input text area**
-- ✅ **Dynamic voice selection** (language and voice name)
-- ✅ **Real-time playback** of synthesized speech
-- ✅ **Save synthesized speech** to an MP3 file
-- ✅ **Basic status messages**
-
-## Prerequisites
-
-- **Python 3.8+**
+- ✅ **Input text area** - Type or paste any text you want to convert
+- ✅ **Dynamic voice selection** - Choose from various languages and voice options
+- ✅ **Real-time playback** - Listen to the synthesized speech instantly
+- ✅ **Save synthesized speech** - Export as MP3 files
+- ✅ **User-friendly interface** - Clean and intuitive design
+- ✅ **Cross-platform** - Works on Windows, macOS, and Linux
 
 ## Installation 🔧
 
@@ -57,21 +43,31 @@ EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interf
 2. Double-click the downloaded file to install using your system's package manager.
 3. Launch EdgeTTS-GUI from your applications menu.
 
-## Usage ▶️
+## How to Use
 
-Run the main application script:
-
-```bash
-python main.py
-```
+1. Launch EdgeTTS-GUI from your applications menu
+2. Select your preferred language and voice from the dropdown menu
+3. Type or paste the text you want to convert to speech
+4. Click the "Play" button to hear the speech
+5. Use the "Save" button to export the speech as an MP3 file
 
 ## Configuration
 
-- Configuration options can be adjusted in the `config.json` file to customize the application's behavior.
+The application can be customized through the `config.json` file:
+- Voice preferences
+- Output directory for saved files
+- Interface settings
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
+Contributions are welcome! Here's how you can help:
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/improvement`)
+3. Make your changes
+4. Commit your changes (`git commit -am 'Add new feature'`)
+5. Push to the branch (`git push origin feature/improvement`)
+6. Create a Pull Request
 
 ## License
 
@@ -79,4 +75,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Contact 📧
 
-For questions or feedback, please contact the project maintainers at [hello@batur.info].
+For questions, feedback, or support:
+- Email: [hello@batur.info](mailto:hello@batur.info)
+- GitHub Issues: [Create an issue](https://github.com/baturkacamak/EdgeTTS-GUI/issues)
+- Repository: [EdgeTTS-GUI](https://github.com/baturkacamak/EdgeTTS-GUI)
