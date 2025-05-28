@@ -3,76 +3,100 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*' # Trigger on tags like v1.0.0, v0.2.1, etc.
 
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Grant permission to create a release
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      tag_name: ${{ steps.get_version.outputs.tag_name }} # e.g., v1.0.0
+      app_version: ${{ steps.get_version.outputs.app_version }} # e.g., 1.0.0 (without 'v')
     steps:
-      - name: Create Release
+      - name: Get version from tag
+        id: get_version
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          APP_VERSION="${TAG_NAME#v}" # Remove 'v' prefix
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV # For use in this job's body
+          echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV # For use in this job's body
+
+      - name: Set Build Date
+        id: set_date
+        run: echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+      - name: Create Release Draft
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: Release ${{ env.TAG_NAME }}
           draft: true
-          prerelease: false
+          prerelease: false # Set to true if this tag pattern indicates a prerelease
           body: |
-            ## EdgeTTS-GUI Release ${{ github.ref }}
-            
+            ## EdgeTTS-GUI Release ${{ env.TAG_NAME }}
+
             ### Installation
             Choose the appropriate package for your platform:
-            
-            - Windows: Download and run `EdgeTTS-GUI-Setup.exe`
-            - macOS: Download and mount `EdgeTTS-GUI.dmg`
+
+            - Windows: Download and run `EdgeTTS-GUI-Setup-${{ env.TAG_NAME }}.exe`
+            - macOS: Download and mount `EdgeTTS-GUI-${{ env.TAG_NAME }}.dmg`
             - Linux:
-              - Debian/Ubuntu: Download and install `.deb` package
-              - Fedora/RHEL: Download and install `.rpm` package
-              - Other: Extract `.tar.gz` archive
-            
+              - Debian/Ubuntu: Download and install `edgetts-gui_${{ env.APP_VERSION }}_amd64.deb`
+              - Fedora/RHEL: Download and install `edgetts-gui-${{ env.APP_VERSION }}.x86_64.rpm`
+              - Other: Extract `EdgeTTS-GUI-${{ env.TAG_NAME }}-linux.tar.gz`
+
             ### Changes
-            
+
             Please list changes here manually before publishing the release.
-            
+
             ### Build Information
             - Build date: ${{ env.BUILD_DATE }}
             - Commit: ${{ github.sha }}
-            
+
             ### Support
             If you encounter any issues, please report them on the GitHub Issues page.
 
   build-linux:
     needs: create-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # For uploading release assets
+    env:
+      TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+      APP_VERSION: ${{ needs.create-release.outputs.app_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-dev rpm
+          sudo apt-get install -y dpkg-dev rpm # Assuming build_packages.sh uses these
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
       - name: Build packages
         run: |
           chmod +x build_packages.sh
-          ./build_packages.sh
+          # Pass versions to your build script. Adjust how your script accepts them.
+          ./build_packages.sh "${APP_VERSION}" "${TAG_NAME}"
       - name: Upload Linux tar.gz
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./releases/linux/EdgeTTS-GUI-1.0.0-linux.tar.gz
-          asset_name: EdgeTTS-GUI-1.0.0-linux.tar.gz
+          asset_path: ./releases/linux/EdgeTTS-GUI-${{ env.TAG_NAME }}-linux.tar.gz # Ensure build_packages.sh creates this
+          asset_name: EdgeTTS-GUI-${{ env.TAG_NAME }}-linux.tar.gz
           asset_content_type: application/gzip
       - name: Upload DEB package
         uses: actions/upload-release-asset@v1
@@ -80,8 +104,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./releases/linux/edgetts-gui_1.0_amd64.deb
-          asset_name: edgetts-gui_1.0_amd64.deb
+          asset_path: ./releases/linux/edgetts-gui_${{ env.APP_VERSION }}_amd64.deb # Ensure build_packages.sh creates this
+          asset_name: edgetts-gui_${{ env.APP_VERSION }}_amd64.deb
           asset_content_type: application/vnd.debian.binary-package
       - name: Upload RPM package
         uses: actions/upload-release-asset@v1
@@ -89,17 +113,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./releases/linux/edgetts-gui-1.0.x86_64.rpm
-          asset_name: edgetts-gui-1.0.x86_64.rpm
+          asset_path: ./releases/linux/edgetts-gui-${{ env.APP_VERSION }}.x86_64.rpm # Ensure build_packages.sh creates this
+          asset_name: edgetts-gui-${{ env.APP_VERSION }}.x86_64.rpm
           asset_content_type: application/x-rpm
 
   build-windows:
     needs: create-release
     runs-on: windows-latest
+    permissions:
+      contents: write # For uploading release assets
+    env:
+      TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+      APP_VERSION: ${{ needs.create-release.outputs.app_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
@@ -109,30 +138,45 @@ jobs:
           pip install pyinstaller
       - name: Install Inno Setup
         run: |
-          choco install innosetup
+          choco install innosetup --version=6.2.2 # Pin version for consistency
       - name: Build Windows package
+        shell: bash # Use bash for consistency in commands like mkdir, and for env var substitution
         run: |
-          mkdir -p releases\windows
+          mkdir -p releases/windows
+          # Ensure PyInstaller uses a consistent name or pass version if needed
           pyinstaller --clean --onefile --add-data "icon.png;." --icon=icon.ico --name EdgeTTS-GUI main.py
-          copy dist\EdgeTTS-GUI.exe releases\windows\
-          iscc installers\windows_setup.iss
+          cp dist/EdgeTTS-GUI.exe releases/windows/
+          # Pass version to Inno Setup script via define.
+          # Your .iss script should use these defines, e.g. AppVersion="{#MyAppVersion}"
+          # and OutputBaseFilename=EdgeTTS-GUI-Setup-{#MyTagVersion}
+          iscc.exe "/DMyAppVersion=${APP_VERSION}" "/DMyTagVersion=${TAG_NAME}" installers/windows_setup.iss
+          # Ensure your Inno Setup script outputs to releases/windows/EdgeTTS-GUI-Setup-${TAG_NAME}.exe
+          # For example, in windows_setup.iss:
+          # [Setup]
+          # OutputDir=..\..\releases\windows
+          # OutputBaseFilename=EdgeTTS-GUI-Setup-{#MyTagVersion}
       - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./releases/windows/EdgeTTS-GUI-Setup.exe
-          asset_name: EdgeTTS-GUI-Setup.exe
+          asset_path: ./releases/windows/EdgeTTS-GUI-Setup-${{ env.TAG_NAME }}.exe # Ensure Inno Setup creates this
+          asset_name: EdgeTTS-GUI-Setup-${{ env.TAG_NAME }}.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
   build-macos:
     needs: create-release
     runs-on: macos-latest
+    permissions:
+      contents: write # For uploading release assets
+    env:
+      TAG_NAME: ${{ needs.create-release.outputs.tag_name }}
+      APP_VERSION: ${{ needs.create-release.outputs.app_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
@@ -143,18 +187,22 @@ jobs:
       - name: Build macOS package
         run: |
           mkdir -p releases/macos
+          # Ensure PyInstaller uses a consistent name or pass version if needed
           pyinstaller --clean --onefile --add-data "icon.png:." --icon=icon.icns --name EdgeTTS-GUI main.py
+          # Update macos_setup.sh to accept version and name DMG accordingly
+          # e.g., ./macos_setup.sh AppName Version OutputDMGName
           cd installers
           chmod +x macos_setup.sh
-          ./macos_setup.sh
+          ./macos_setup.sh "EdgeTTS-GUI" "${TAG_NAME}" # Example: pass app name and tag
+          # Assume macos_setup.sh creates EdgeTTS-GUI-${TAG_NAME}.dmg in current dir (installers)
           cd ..
-          mv installers/EdgeTTS-GUI.dmg releases/macos/
+          mv installers/EdgeTTS-GUI-${{ env.TAG_NAME }}.dmg releases/macos/
       - name: Upload macOS DMG
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./releases/macos/EdgeTTS-GUI.dmg
-          asset_name: EdgeTTS-GUI.dmg
-          asset_content_type: application/x-apple-diskimage 
+          asset_path: ./releases/macos/EdgeTTS-GUI-${{ env.TAG_NAME }}.dmg # Ensure macos_setup.sh creates this
+          asset_name: EdgeTTS-GUI-${{ env.TAG_NAME }}.dmg
+          asset_content_type: application/x-apple-diskimage
