@@ -1,24 +1,38 @@
 # EdgeTTS-CustomTkinter-GUI
 
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue)
+
 A user-friendly, cross-platform graphical interface for Microsoft's Edge Text-to-Speech service. Built with Python and CustomTkinter, allowing easy text-to-speech conversion with voice selection, playback, and audio file saving.
 
-## Introduction
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+
+## Introduction 🔊
 
 EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interface for converting text to speech using Microsoft's Edge TTS service. This tool is ideal for users who need to generate speech from text efficiently and with a variety of voice options.
 
 ## Features
 
-- Input text area.
-- Dynamic voice selection (language and voice name).
-- Real-time playback of synthesized speech.
-- Save synthesized speech to an MP3 file.
-- Basic status messages.
+- ✅ **Input text area**
+- ✅ **Dynamic voice selection** (language and voice name)
+- ✅ **Real-time playback** of synthesized speech
+- ✅ **Save synthesized speech** to an MP3 file
+- ✅ **Basic status messages**
 
 ## Prerequisites
 
-- Python 3.8+
+- **Python 3.8+**
 
-## Installation
+## Installation 🔧
 
 1. **Clone the repository:**
     ```bash
@@ -44,7 +58,7 @@ EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interf
         - On macOS, you might need PyObjC: `pip install PyObjC`
         - Windows usually works out of the box.
 
-## Usage
+## Usage ▶️
 
 Run the main application script:
 
@@ -64,6 +78,6 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
+## Contact 📧
 
 For questions or feedback, please contact the project maintainers at [your-email@example.com].
