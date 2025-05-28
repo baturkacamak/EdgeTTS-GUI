@@ -989,6 +989,9 @@ class EdgeTTSApp(ctk.CTk):
         )
         self.text_input.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
         self.text_input.insert("1.0", DEFAULT_TEXT)
+        # Bind Ctrl+A to select all text
+        self.text_input.bind("<Control-a>", self.select_all_text)
+        self.text_input.bind("<Control-A>", self.select_all_text)
 
         # Stats frame for word and character count
         stats_frame = ctk.CTkFrame(text_frame, fg_color="transparent")
@@ -1451,62 +1454,54 @@ class EdgeTTSApp(ctk.CTk):
             self._reset_progress()
 
     def highlight_current_word(self, current_time):
-        """Highlight the current word being spoken"""
-        # Remove previous highlight
+        """Highlight only the current word being spoken, not all occurrences."""
         self.text_input.tag_remove("highlight", "1.0", "end")
-        
         if not self.word_timings:
             logging.warning("No word timings available for highlighting")
             return
-            
         logging.debug(f"Current playback time: {current_time:.2f}s")
-        
-        # Find the current word based on timing
+        text_content = self.text_input.get("1.0", "end-1c")
         for word_info in self.word_timings:
-            # Add some tolerance for timing comparison (e.g., ±50ms)
             start_time = word_info['start']
             end_time = word_info['end']
-            
-            # Add a small tolerance to the timing comparison
             tolerance = 0.05  # 50ms tolerance
             if (start_time - tolerance) <= current_time <= (end_time + tolerance):
                 word = word_info['text']
-                logging.debug(f"Found matching word: '{word}' at time {current_time:.2f}s (between {start_time:.2f}s and {end_time:.2f}s)")
-                
-                # Search for the word in the text
-                start_pos = "1.0"
-                found = False
-                
-                while True:
-                    try:
-                        # Search for the word
-                        pos = self.text_input.search(word, start_pos, "end")
-                        if not pos:
-                            break
-                            
-                        # Calculate end position
-                        end_pos = f"{pos}+{len(word)}c"
-                        
-                        # Add highlight
-                        self.text_input.tag_add("highlight", pos, end_pos)
-                        self.text_input.tag_config("highlight", background="yellow", foreground="black")
-                        
-                        # Ensure the highlighted word is visible
-                        self.text_input.see(pos)
-                        found = True
-                        logging.debug(f"Highlighted word '{word}' at position {pos}")
-                        
-                        # Move to next occurrence
-                        start_pos = end_pos
-                    except Exception as e:
-                        logging.error(f"Error highlighting word: {e}")
-                        break
-                
-                if not found:
-                    logging.warning(f"Could not find word '{word}' in text")
-                return  # Exit after processing the current word
-        
+                offset = word_info['offset'] // 2  # EdgeTTS offset is in UTF-16 code units, Python uses UTF-8/Unicode codepoints
+                # Convert offset to Python string index
+                # This works for most cases unless there are surrogate pairs (rare in Turkish/English)
+                try:
+                    # Find the start and end index in the text widget
+                    start_idx = self._char_index_to_text_index(offset)
+                    end_idx = self._char_index_to_text_index(offset + len(word))
+                    self.text_input.tag_add("highlight", start_idx, end_idx)
+                    self.text_input.tag_config("highlight", background="yellow", foreground="black")
+                    self.text_input.see(start_idx)
+                    logging.debug(f"Highlighted word '{word}' at {start_idx}-{end_idx}")
+                except Exception as e:
+                    logging.error(f"Error highlighting word at offset {offset}: {e}")
+                return
         logging.debug(f"No word found for time {current_time:.2f}s")
+
+    def _char_index_to_text_index(self, char_index):
+        """Convert a character index to a Tkinter text widget index (line.char format)."""
+        text = self.text_input.get("1.0", "end-1c")
+        # Clamp char_index to text length
+        char_index = min(char_index, len(text))
+        # Tkinter text widget is 1-based for lines, 0-based for columns
+        line = 1
+        col = 0
+        count = 0
+        for i, c in enumerate(text):
+            if count == char_index:
+                break
+            if c == '\n':
+                line += 1
+                col = 0
+            else:
+                col += 1
+            count += 1
+        return f"{line}.{col}"
 
     def _reset_progress(self):
         """Reset progress-related UI elements"""
@@ -2502,6 +2497,11 @@ class EdgeTTSApp(ctk.CTk):
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
             self.voice_combobox.configure(state="normal")
+
+    def select_all_text(self, event=None):
+        """Select all text in the text input box."""
+        self.text_input.tag_add("sel", "1.0", "end-1c")
+        return "break"
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
