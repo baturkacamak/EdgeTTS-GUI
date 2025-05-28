@@ -154,10 +154,7 @@ async def retry_async_operation(operation, *args, **kwargs):
     for attempt in range(MAX_RETRIES):
         try:
             return await operation(*args, **kwargs)
-        except (edge_tts.exceptions.NoConnectionException,
-                edge_tts.exceptions.CommunicationError,
-                ConnectionError,
-                TimeoutError) as e:
+        except (ConnectionError, TimeoutError) as e:
             last_exception = e
             if attempt < MAX_RETRIES - 1:  # Don't sleep on the last attempt
                 # Calculate exponential backoff with jitter
@@ -888,6 +885,9 @@ class EdgeTTSApp(ctk.CTk):
         self.current_audio_file = None
         self.audio_length = 0
         self.update_progress_id = None
+        self.current_word_index = 0
+        self.word_timings = []
+        self.word_highlight_id = None
         
         # Configure grid layout (3x1)
         self.grid_rowconfigure(1, weight=1)
@@ -1344,6 +1344,7 @@ class EdgeTTSApp(ctk.CTk):
                 raise FileOperationError("Audio file is empty")
                 
             logging.info(f"Starting audio playback: {audio_path}")
+            logging.info(f"Number of word timings available: {len(self.word_timings)}")
             
             # Safely quit any existing mixer
             try:
@@ -1405,46 +1406,91 @@ class EdgeTTSApp(ctk.CTk):
             logging.error(f"Error during audio system cleanup: {e}")
 
     def update_progress(self):
-        """Update progress bar and time display with error handling"""
-        try:
-            if not pygame.mixer.get_init():
-                logging.debug("Mixer not initialized, stopping progress updates")
-                self._reset_progress()
-                return
-                
-            if pygame.mixer.music.get_busy() or self.is_paused:
-                if self.stop_requested.is_set():
-                    logging.debug("Stop requested, ending progress updates")
-                    self._reset_progress()
-                    return
-                    
-                try:
-                    current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
-                    if current_pos < 0:  # When paused, get_pos returns -1
-                        current_pos = float(self.progress_bar.get()) * self.audio_length
-                        
+        """Update progress bar and word highlighting"""
+        if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
+            try:
+                current_pos = pygame.mixer.music.get_pos() / 1000.0  # Convert to seconds
+                if current_pos >= 0:  # Only update if we have a valid position
                     progress = current_pos / self.audio_length if self.audio_length > 0 else 0
                     self.progress_bar.set(progress)
                     self.current_time.configure(text=self.format_time(current_pos))
                     
-                    # Schedule next update
-                    self.update_progress_id = self.after(100, self.update_progress)
-                except Exception as e:
-                    logging.error(f"Error updating progress: {e}")
-                    self._reset_progress()
-            else:
-                logging.debug("Playback finished or stopped")
-                self._reset_progress()
-                
-        except Exception as e:
-            logging.error(f"Unexpected error in progress update: {e}")
+                    # Update word highlighting
+                    self.highlight_current_word(current_pos)
+                else:
+                    logging.warning(f"Invalid current position: {current_pos}")
+            except Exception as e:
+                logging.error(f"Error updating progress: {e}")
+            
+            # Schedule next update
+            self.update_progress_id = self.after(50, self.update_progress)
+        else:
             self._reset_progress()
+
+    def highlight_current_word(self, current_time):
+        """Highlight the current word being spoken"""
+        # Remove previous highlight
+        self.text_input.tag_remove("highlight", "1.0", "end")
+        
+        if not self.word_timings:
+            logging.warning("No word timings available for highlighting")
+            return
+            
+        logging.debug(f"Current playback time: {current_time:.2f}s")
+        
+        # Find the current word based on timing
+        for word_info in self.word_timings:
+            # Add some tolerance for timing comparison (e.g., ±50ms)
+            start_time = word_info['start']
+            end_time = word_info['end']
+            
+            # Add a small tolerance to the timing comparison
+            tolerance = 0.05  # 50ms tolerance
+            if (start_time - tolerance) <= current_time <= (end_time + tolerance):
+                word = word_info['text']
+                logging.debug(f"Found matching word: '{word}' at time {current_time:.2f}s (between {start_time:.2f}s and {end_time:.2f}s)")
+                
+                # Search for the word in the text
+                start_pos = "1.0"
+                found = False
+                
+                while True:
+                    try:
+                        # Search for the word
+                        pos = self.text_input.search(word, start_pos, "end")
+                        if not pos:
+                            break
+                            
+                        # Calculate end position
+                        end_pos = f"{pos}+{len(word)}c"
+                        
+                        # Add highlight
+                        self.text_input.tag_add("highlight", pos, end_pos)
+                        self.text_input.tag_config("highlight", background="yellow", foreground="black")
+                        
+                        # Ensure the highlighted word is visible
+                        self.text_input.see(pos)
+                        found = True
+                        logging.debug(f"Highlighted word '{word}' at position {pos}")
+                        
+                        # Move to next occurrence
+                        start_pos = end_pos
+                    except Exception as e:
+                        logging.error(f"Error highlighting word: {e}")
+                        break
+                
+                if not found:
+                    logging.warning(f"Could not find word '{word}' in text")
+                return  # Exit after processing the current word
+        
+        logging.debug(f"No word found for time {current_time:.2f}s")
 
     def _reset_progress(self):
         """Reset progress-related UI elements"""
         try:
             self.progress_bar.set(0)
             self.current_time.configure(text="0:00")
+            self.text_input.tag_remove("highlight", "1.0", "end")
             
             if self.update_progress_id:
                 self.after_cancel(self.update_progress_id)
@@ -1553,6 +1599,7 @@ class EdgeTTSApp(ctk.CTk):
         self._set_speaking_state(False)
         self.progress_bar.set(0)
         self.current_time.configure(text="0:00")
+        self.text_input.tag_remove("highlight", "1.0", "end")
         if self.update_progress_id:
             self.after_cancel(self.update_progress_id)
             self.update_progress_id = None
@@ -1666,7 +1713,7 @@ class EdgeTTSApp(ctk.CTk):
 
     def _synthesize_speech(self, text, voice_short_name, output_filepath):
         """
-        Synthesize speech with comprehensive error handling
+        Synthesize speech with comprehensive error handling and word timing
         
         Args:
             text: Text to synthesize
@@ -1709,30 +1756,48 @@ class EdgeTTSApp(ctk.CTk):
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
 
-            # Create communicate instance
-            try:
-                communicate = edge_tts.Communicate(
-                    text,
-                    voice_short_name,
-                    rate=f"{rate_percent:+d}%",
-                    pitch=f"{int(pitch):+d}Hz"
-                )
-            except edge_tts.exceptions.NoConnectionException as e:
-                raise NetworkError(f"Failed to connect to TTS service: {e}")
-            except edge_tts.exceptions.InvalidVoiceException as e:
-                raise SynthesisError(f"Invalid voice selected: {e}")
-            except Exception as e:
-                raise SynthesisError(f"Failed to initialize TTS: {e}")
+            # Reset word timings
+            self.word_timings = []
+            self.current_word_index = 0
 
             async def synthesize_with_retry():
                 try:
-                    await retry_async_operation(communicate.save, output_filepath)
-                except (edge_tts.exceptions.NoConnectionException,
-                        edge_tts.exceptions.CommunicationError,
-                        ConnectionError,
-                        TimeoutError) as e:
+                    # Create communicate instance for saving
+                    communicate = edge_tts.Communicate(
+                        text,
+                        voice_short_name,
+                        rate=f"{rate_percent:+d}%",
+                        pitch=f"{int(pitch):+d}Hz"
+                    )
+                    
+                    # Create a list to store metadata events
+                    metadata_list = []
+                    
+                    logging.info("Starting to collect word timings...")
+                    
+                    # Open the output file for writing
+                    with open(output_filepath, "wb") as file:
+                        async for event in communicate.stream():
+                            if event["type"] == "audio":
+                                file.write(event["data"])
+                            elif event["type"] == "WordBoundary":
+                                timing = {
+                                    'text': event["text"],
+                                    'offset': event["offset"],
+                                    'duration': event["duration"],
+                                    'start': event["offset"] / 10000000,  # Convert to seconds
+                                    'end': (event["offset"] + event["duration"]) / 10000000  # Convert to seconds
+                                }
+                                self.word_timings.append(timing)
+                                logging.debug(f"Word timing collected: {timing}")
+                    
+                    logging.info(f"Collected {len(self.word_timings)} word timings")
+                    
+                except ConnectionError as e:
                     raise NetworkError(f"Network error during synthesis: {e}")
                 except Exception as e:
+                    if isinstance(e, NetworkError):
+                        raise
                     raise SynthesisError(f"Synthesis failed: {e}")
 
             # Run synthesis
