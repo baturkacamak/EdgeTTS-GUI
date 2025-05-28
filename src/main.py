@@ -497,6 +497,80 @@ PREVIEW_TEXTS = {
     "default": {"rate": "Speed test {speed}×", "pitch": "Pitch test"}
 }
 
+# Default texts for different languages
+DEFAULT_TEXTS = {
+    "af": "Hallo, dit is 'n toets van Microsoft Edge Teks-na-Spraak met CustomTkinter.",  # Afrikaans
+    "sq": "Përshëndetje, ky është një test i Microsoft Edge Text-to-Speech me CustomTkinter.",  # Albanian
+    "am": "ሰላም፣ ይህ የማይክሮሶፍት ኤጅ ጽሑፍ-ወደ-ንግግር ከ CustomTkinter ጋር የሚደረግ ሙከራ ነው።",  # Amharic
+    "ar": "مرحباً، هذا اختبار لخدمة تحويل النص إلى كلام من مايكروسوفت إيدج مع CustomTkinter.",  # Arabic
+    "az": "Salam, bu Microsoft Edge Mətn-Nitq xidmətinin CustomTkinter ilə testidir.",  # Azerbaijani
+    "bn": "হ্যালো, এটি মাইক্রোসফট এজ টেক্সট-টু-স্পিচ এর CustomTkinter দিয়ে একটি পরীক্ষা।",  # Bengali
+    "bs": "Zdravo, ovo je test Microsoft Edge Text-to-Speech sa CustomTkinter.",  # Bosnian
+    "bg": "Здравейте, това е тест на Microsoft Edge Text-to-Speech с CustomTkinter.",  # Bulgarian
+    "my": "မင်္ဂလာပါ၊ ဤသည်မှာ CustomTkinter ဖြင့် Microsoft Edge စာသားမှအသံပြောင်းခြင်း စမ်းသပ်မှုဖြစ်သည်။",  # Burmese
+    "ca": "Hola, això és una prova de Microsoft Edge Text-to-Speech amb CustomTkinter.",  # Catalan
+    "zh": "你好，这是使用 CustomTkinter 的 Microsoft Edge 文本转语音测试。",  # Chinese
+    "hr": "Pozdrav, ovo je test Microsoft Edge Text-to-Speech s CustomTkinter.",  # Croatian
+    "cs": "Dobrý den, toto je test Microsoft Edge Text-to-Speech s CustomTkinter.",  # Czech
+    "da": "Hej, dette er en test af Microsoft Edge Text-to-Speech med CustomTkinter.",  # Danish
+    "nl": "Hallo, dit is een test van Microsoft Edge Text-to-Speech met CustomTkinter.",  # Dutch
+    "en": "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter.",  # English
+    "et": "Tere, see on Microsoft Edge Text-to-Speech test CustomTkinteriga.",  # Estonian
+    "fil": "Kamusta, ito ay isang pagsubok ng Microsoft Edge Text-to-Speech gamit ang CustomTkinter.",  # Filipino
+    "fi": "Hei, tämä on testi Microsoft Edge Text-to-Speech:lle CustomTkinterin kanssa.",  # Finnish
+    "fr": "Bonjour, ceci est un test de Microsoft Edge Text-to-Speech avec CustomTkinter.",  # French
+    "gl": "Ola, isto é unha proba de Microsoft Edge Text-to-Speech con CustomTkinter.",  # Galician
+    "ka": "გამარჯობა, ეს არის Microsoft Edge Text-to-Speech-ის ტესტი CustomTkinter-თან ერთად.",  # Georgian
+    "de": "Hallo, dies ist ein Test von Microsoft Edge Text-to-Speech mit CustomTkinter.",  # German
+    "el": "Γεια σας, αυτή είναι μια δοκιμή του Microsoft Edge Text-to-Speech με CustomTkinter.",  # Greek
+    "gu": "નમસ્તે, આ CustomTkinter સાથે Microsoft Edge ટેક્સ્ટ-ટુ-સ્પીચની એક પરીક્ષણ છે.",  # Gujarati
+    "he": "שלום, זוהי בדיקה של Microsoft Edge Text-to-Speech עם CustomTkinter.",  # Hebrew
+    "hi": "नमस्ते, यह CustomTkinter के साथ Microsoft Edge टेक्स्ट-टू-स्पीच का एक परीक्षण है।",  # Hindi
+    "hu": "Üdvözöljük, ez egy Microsoft Edge Text-to-Speech teszt CustomTkinter használatával.",  # Hungarian
+    "is": "Halló, þetta er prófun á Microsoft Edge Text-to-Speech með CustomTkinter.",  # Icelandic
+    "id": "Halo, ini adalah tes Microsoft Edge Text-to-Speech dengan CustomTkinter.",  # Indonesian
+    "ga": "Dia duit, seo tástáil ar Microsoft Edge Text-to-Speech le CustomTkinter.",  # Irish
+    "it": "Ciao, questo è un test di Microsoft Edge Text-to-Speech con CustomTkinter.",  # Italian
+    "ja": "こんにちは、これは CustomTkinter を使用した Microsoft Edge 音声合成のテストです。",  # Japanese
+    "kn": "ನಮಸ್ಕಾರ, ಇದು CustomTkinter ನೊಂದಿಗೆ Microsoft Edge ಪಠ್ಯ-ಧ್ವನಿ ಪರೀಕ್ಷೆಯಾಗಿದೆ.",  # Kannada
+    "kk": "Сәлем, бұл CustomTkinter көмегімен Microsoft Edge мәтіннен сөзге түрлендіру сынағы.",  # Kazakh
+    "km": "សួស្តី នេះជាការសាកល្បង Microsoft Edge Text-to-Speech ជាមួយ CustomTkinter។",  # Khmer
+    "ko": "안녕하세요, CustomTkinter를 사용한 Microsoft Edge 텍스트 음성 변환 테스트입니다.",  # Korean
+    "lv": "Sveiki, šis ir Microsoft Edge Text-to-Speech tests ar CustomTkinter.",  # Latvian
+    "lt": "Sveiki, tai Microsoft Edge Text-to-Speech testas su CustomTkinter.",  # Lithuanian
+    "mk": "Здраво, ова е тест на Microsoft Edge Text-to-Speech со CustomTkinter.",  # Macedonian
+    "ms": "Hai, ini adalah ujian Microsoft Edge Text-to-Speech dengan CustomTkinter.",  # Malay
+    "ml": "ഹലോ, ഇത് CustomTkinter ഉപയോഗിച്ചുള്ള Microsoft Edge ടെക്സ്റ്റ്-ടു-സ്പീച്ച് പരീക്ഷണമാണ്.",  # Malayalam
+    "mt": "Bongu, dan huwa test ta' Microsoft Edge Text-to-Speech b'CustomTkinter.",  # Maltese
+    "mr": "नमस्कार, हा CustomTkinter सह Microsoft Edge टेक्स्ट-टू-स्पीच चा एक चाचणी आहे.",  # Marathi
+    "mn": "Сайн байна уу, энэ бол CustomTkinter-тэй Microsoft Edge Текст-Яриа функцийн тест юм.",  # Mongolian
+    "ne": "नमस्कार, यो CustomTkinter संग Microsoft Edge पाठ-वाचन को परीक्षण हो।",  # Nepali
+    "nb": "Hei, dette er en test av Microsoft Edge Text-to-Speech med CustomTkinter.",  # Norwegian
+    "fa": "سلام، این یک آزمایش Microsoft Edge Text-to-Speech با CustomTkinter است.",  # Persian
+    "pl": "Cześć, to jest test Microsoft Edge Text-to-Speech z CustomTkinter.",  # Polish
+    "pt": "Olá, isto é um teste do Microsoft Edge Text-to-Speech com CustomTkinter.",  # Portuguese
+    "pa": "ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਇਹ CustomTkinter ਨਾਲ Microsoft Edge ਟੈਕਸਟ-ਟੂ-ਸਪੀਚ ਦਾ ਟੈਸਟ ਹੈ।",  # Punjabi
+    "ro": "Bună ziua, acesta este un test Microsoft Edge Text-to-Speech cu CustomTkinter.",  # Romanian
+    "ru": "Здравствуйте, это тест Microsoft Edge Text-to-Speech с CustomTkinter.",  # Russian
+    "sr": "Здраво, ово је тест Microsoft Edge Text-to-Speech са CustomTkinter.",  # Serbian
+    "si": "ආයුබෝවන්, මෙය CustomTkinter සමඟ Microsoft Edge Text-to-Speech පරීක්ෂණයකි.",  # Sinhala
+    "sk": "Dobrý deň, toto je test Microsoft Edge Text-to-Speech s CustomTkinter.",  # Slovak
+    "sl": "Pozdravljeni, to je test Microsoft Edge Text-to-Speech s CustomTkinter.",  # Slovenian
+    "es": "Hola, esta es una prueba de Microsoft Edge Text-to-Speech con CustomTkinter.",  # Spanish
+    "sw": "Habari, hii ni jaribio la Microsoft Edge Text-to-Speech na CustomTkinter.",  # Swahili
+    "sv": "Hej, detta är ett test av Microsoft Edge Text-to-Speech med CustomTkinter.",  # Swedish
+    "ta": "வணக்கம், இது CustomTkinter உடன் Microsoft Edge உரை-பேச்சு சேவையின் சோதனை ஆகும்.",  # Tamil
+    "te": "నమస్కారం, ఇది CustomTkinter తో Microsoft Edge టెక్స్ట్-టు-స్పీచ్ పరీక్ష.",  # Telugu
+    "th": "สวัสดี นี่คือการทดสอบ Microsoft Edge Text-to-Speech กับ CustomTkinter",  # Thai
+    "tr": "Merhaba, bu CustomTkinter ile Microsoft Edge Metin-Konuşma testi.",  # Turkish
+    "uk": "Привіт, це тест Microsoft Edge Text-to-Speech з CustomTkinter.",  # Ukrainian
+    "ur": "ہیلو، یہ CustomTkinter کے ساتھ Microsoft Edge ٹیکسٹ ٹو سپیچ کا ٹیسٹ ہے۔",  # Urdu
+    "uz": "Salom, bu CustomTkinter bilan Microsoft Edge Matn-Nutq xizmatining sinovi.",  # Uzbek
+    "vi": "Xin chào, đây là bài kiểm tra Microsoft Edge Text-to-Speech với CustomTkinter.",  # Vietnamese
+    "cy": "Helo, dyma brawf o Microsoft Edge Text-to-Speech gyda CustomTkinter.",  # Welsh
+    "zu": "Sawubona, loku ukuhlola i-Microsoft Edge Text-to-Speech ne-CustomTkinter.",  # Zulu
+}
+
 class ToolTip:
     """Create a tooltip for a given widget with modern styling."""
     def __init__(self, widget, text):
@@ -1040,6 +1114,12 @@ class EdgeTTSApp(ctk.CTk):
 
         self.load_initial_voices()
 
+        # Initialize text input with appropriate language text
+        if self.last_selected_voice:
+            self.update_text_input_for_language(self.last_selected_voice)
+        else:
+            self.text_input.insert("1.0", DEFAULT_TEXTS["en"])
+
     def adjust_window_size(self):
         """Adjust window size to fit components"""
         self.update_idletasks()  # Ensure all widgets are rendered
@@ -1265,7 +1345,16 @@ class EdgeTTSApp(ctk.CTk):
             self.update_detailed_status("No voices found.")
 
     def on_voice_selected_from_combobox(self, choice):
-        # Save the selected voice to config when changed
+        """Handle voice selection change"""
+        voice_name = self.voice_map.get(choice)
+        if voice_name:
+            # Only update text if it's the default text
+            current_text = self.text_input.get("1.0", "end-1c").strip()
+            # Check if current text is any of the default texts
+            is_default_text = any(current_text == default_text for default_text in DEFAULT_TEXTS.values())
+            if is_default_text:
+                self.update_text_input_for_language(voice_name)
+        # Save the selected voice to config
         self.save_config()
 
     def get_text_from_cursor(self):
@@ -2512,6 +2601,22 @@ class EdgeTTSApp(ctk.CTk):
         """Select all text in the text input box."""
         self.text_input.tag_add("sel", "1.0", "end-1c")
         return "break"
+
+    def get_language_code_from_voice(self, voice_name):
+        """Extract language code from voice name or locale"""
+        for voice in self.voices_list_full:
+            if voice["Name"] == voice_name:
+                # Get the main language code (e.g., "en-US" -> "en")
+                return voice["Locale"].split("-")[0].lower()
+        return "en"  # Default to English if not found
+
+    def update_text_input_for_language(self, voice_name):
+        """Update text input with appropriate default text for the language"""
+        lang_code = self.get_language_code_from_voice(voice_name)
+        default_text = DEFAULT_TEXTS.get(lang_code, DEFAULT_TEXTS["en"])  # Fallback to English if language not found
+        self.text_input.delete("1.0", "end")
+        self.text_input.insert("1.0", default_text)
+        self.update_text_stats(None)  # Update word/character count
 
 if __name__ == "__main__":
     app = EdgeTTSApp()
