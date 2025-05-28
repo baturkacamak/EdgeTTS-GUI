@@ -1,0 +1,160 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+          body: |
+            ## EdgeTTS-GUI Release ${{ github.ref }}
+            
+            ### Installation
+            Choose the appropriate package for your platform:
+            
+            - Windows: Download and run `EdgeTTS-GUI-Setup.exe`
+            - macOS: Download and mount `EdgeTTS-GUI.dmg`
+            - Linux:
+              - Debian/Ubuntu: Download and install `.deb` package
+              - Fedora/RHEL: Download and install `.rpm` package
+              - Other: Extract `.tar.gz` archive
+            
+            ### Changes
+            
+            Please list changes here manually before publishing the release.
+            
+            ### Build Information
+            - Build date: ${{ env.BUILD_DATE }}
+            - Commit: ${{ github.sha }}
+            
+            ### Support
+            If you encounter any issues, please report them on the GitHub Issues page.
+
+  build-linux:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev rpm
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build packages
+        run: |
+          chmod +x build_packages.sh
+          ./build_packages.sh
+      - name: Upload Linux tar.gz
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./releases/linux/EdgeTTS-GUI-1.0.0-linux.tar.gz
+          asset_name: EdgeTTS-GUI-1.0.0-linux.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload DEB package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./releases/linux/edgetts-gui_1.0_amd64.deb
+          asset_name: edgetts-gui_1.0_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
+      - name: Upload RPM package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./releases/linux/edgetts-gui-1.0.x86_64.rpm
+          asset_name: edgetts-gui-1.0.x86_64.rpm
+          asset_content_type: application/x-rpm
+
+  build-windows:
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup
+      - name: Build Windows package
+        run: |
+          mkdir -p releases\windows
+          pyinstaller --clean --onefile --add-data "icon.png;." --icon=icon.ico --name EdgeTTS-GUI main.py
+          copy dist\EdgeTTS-GUI.exe releases\windows\
+          iscc installers\windows_setup.iss
+      - name: Upload Windows installer
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./releases/windows/EdgeTTS-GUI-Setup.exe
+          asset_name: EdgeTTS-GUI-Setup.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+  build-macos:
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build macOS package
+        run: |
+          mkdir -p releases/macos
+          pyinstaller --clean --onefile --add-data "icon.png:." --icon=icon.icns --name EdgeTTS-GUI main.py
+          cd installers
+          chmod +x macos_setup.sh
+          ./macos_setup.sh
+          cd ..
+          mv installers/EdgeTTS-GUI.dmg releases/macos/
+      - name: Upload macOS DMG
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./releases/macos/EdgeTTS-GUI.dmg
+          asset_name: EdgeTTS-GUI.dmg
+          asset_content_type: application/x-apple-diskimage 

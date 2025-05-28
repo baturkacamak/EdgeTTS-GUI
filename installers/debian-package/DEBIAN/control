@@ -1,0 +1,6 @@
+Package: edgetts-gui
+Version: 1.0
+Architecture: amd64
+Maintainer: Batur Kacamak <hello@batur.info>
+Description: EdgeTTS GUI Application
+ A user-friendly GUI for Microsoft's Edge Text-to-Speech service.

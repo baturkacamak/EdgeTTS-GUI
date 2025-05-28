@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=EdgeTTS GUI
+Exec=/usr/local/bin/EdgeTTS-GUI
+Icon=edgetts-gui
+Type=Application
+Categories=Utility;
