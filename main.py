@@ -16,6 +16,117 @@ import pygame  # For advanced audio playback
 from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
 from PIL import Image, ImageTk  # For icon support
 import random
+import logging
+import traceback
+from datetime import datetime
+from pathlib import Path
+
+# Setup logging
+LOG_DIR = os.path.join(os.path.expanduser("~"), ".edge_tts_gui", "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+log_file = os.path.join(LOG_DIR, f"edge_tts_gui_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+
+class TTSError(Exception):
+    """Base exception class for TTS-related errors"""
+    pass
+
+class NetworkError(TTSError):
+    """Network-related errors"""
+    pass
+
+class SynthesisError(TTSError):
+    """Speech synthesis errors"""
+    pass
+
+class AudioError(TTSError):
+    """Audio playback errors"""
+    pass
+
+class FileOperationError(TTSError):
+    """File operation errors"""
+    pass
+
+def handle_error(error, error_type="Error", show_message=True, parent=None):
+    """
+    Centralized error handler that logs errors and optionally shows them to the user
+    
+    Args:
+        error: The error object or message
+        error_type: Type of error for the message title
+        show_message: Whether to show error message to user
+        parent: Parent window for the message box
+    """
+    error_msg = str(error)
+    error_traceback = traceback.format_exc()
+    
+    # Log the error
+    logging.error(f"{error_type}: {error_msg}")
+    logging.debug(f"Traceback: {error_traceback}")
+    
+    # Show error message if requested
+    if show_message and parent:
+        try:
+            error_dialog = ctk.CTkToplevel(parent)
+            error_dialog.title(f"{error_type}")
+            error_dialog.geometry("400x300")
+            
+            # Make dialog modal
+            error_dialog.transient(parent)
+            error_dialog.grab_set()
+            
+            # Add error icon and message
+            error_label = ctk.CTkLabel(
+                error_dialog,
+                text="❌",
+                font=ctk.CTkFont(size=48)
+            )
+            error_label.pack(pady=10)
+            
+            # Error message with scrollbar
+            message_frame = ctk.CTkFrame(error_dialog)
+            message_frame.pack(fill="both", expand=True, padx=10, pady=5)
+            
+            scrollbar = ctk.CTkScrollbar(message_frame)
+            scrollbar.pack(side="right", fill="y")
+            
+            message_text = ctk.CTkTextbox(
+                message_frame,
+                height=150,
+                wrap="word",
+                yscrollcommand=scrollbar.set
+            )
+            message_text.pack(fill="both", expand=True)
+            message_text.insert("1.0", f"{error_msg}\n\nTechnical Details:\n{error_traceback}")
+            message_text.configure(state="disabled")
+            
+            scrollbar.configure(command=message_text.yview)
+            
+            # Close button
+            close_button = ctk.CTkButton(
+                error_dialog,
+                text="Close",
+                command=error_dialog.destroy
+            )
+            close_button.pack(pady=10)
+            
+            # Center the dialog on parent
+            error_dialog.update_idletasks()
+            x = parent.winfo_x() + (parent.winfo_width() - error_dialog.winfo_width()) // 2
+            y = parent.winfo_y() + (parent.winfo_height() - error_dialog.winfo_height()) // 2
+            error_dialog.geometry(f"+{x}+{y}")
+            
+        except Exception as e:
+            # If showing error dialog fails, fall back to console
+            logging.error(f"Failed to show error dialog: {e}")
+            print(f"Error: {error_msg}")
 
 # Network retry configuration
 MAX_RETRIES = 3
@@ -952,54 +1063,100 @@ class EdgeTTSApp(ctk.CTk):
         threading.Thread(target=self.load_voices_threaded, daemon=True).start()
 
     def load_voices_threaded(self):
+        """Load voices with comprehensive error handling"""
         try:
             # Check cache status
-            cache_info = get_cache_status()
-            self.after(0, self.update_detailed_status, "Checking cache...", cache_info)
-            self.after(0, self.progress_bar.set, 0.2)
+            try:
+                cache_info = get_cache_status()
+                logging.info("Checking voice cache status")
+                self.after(0, self.update_detailed_status, "Checking cache...", cache_info)
+                self.after(0, self.progress_bar.set, 0.2)
+            except Exception as e:
+                logging.error(f"Failed to check cache status: {e}")
+                cache_info = {"message": "Cache status check failed", "expires_in": None}
 
             # Try loading from cache
-            cached_voices = load_cached_voices()
-            if cached_voices:
-                self.after(0, self.update_detailed_status, "Loading from cache...", cache_info)
-                self.after(0, self.progress_bar.set, 0.6)
-                self.voices_list_full = cached_voices
-                self.after(0, self.process_loaded_voices)
-                return
+            try:
+                cached_voices = load_cached_voices()
+                if cached_voices:
+                    logging.info("Successfully loaded voices from cache")
+                    self.after(0, self.update_detailed_status, "Loading from cache...", cache_info)
+                    self.after(0, self.progress_bar.set, 0.6)
+                    self.voices_list_full = cached_voices
+                    self.after(0, self.process_loaded_voices)
+                    return
+            except Exception as e:
+                logging.warning(f"Failed to load voices from cache: {e}")
+                cached_voices = None
 
             # If no cache, load from network
+            logging.info("Cache not available, fetching from network")
             self.after(0, self.update_detailed_status, "Cache not available, fetching from network...", cache_info)
             self.after(0, self.progress_bar.set, 0.3)
 
             async def get_voices_async():
-                voices_manager = await edge_tts.VoicesManager.create()
-                return voices_manager
+                try:
+                    voices_manager = await edge_tts.VoicesManager.create()
+                    return voices_manager
+                except edge_tts.exceptions.NoConnectionException as e:
+                    raise NetworkError(f"Failed to connect to TTS service: {e}")
+                except Exception as e:
+                    raise TTSError(f"Failed to create voices manager: {e}")
 
             async def load_voices_with_retry():
                 self.after(0, self.update_detailed_status, "Connecting to Microsoft Edge TTS service...", cache_info)
                 self.after(0, self.progress_bar.set, 0.4)
                 
-                voices_manager = await retry_async_operation(get_voices_async)
-                return voices_manager
+                try:
+                    voices_manager = await retry_async_operation(get_voices_async)
+                    return voices_manager
+                except Exception as e:
+                    if isinstance(e, NetworkError):
+                        raise
+                    raise TTSError(f"Failed to load voices after retries: {e}")
 
             # Run the async operation with retry
-            voices_manager = asyncio.run(load_voices_with_retry())
-            self.voices_list_full = voices_manager.voices
-            
-            self.after(0, self.update_detailed_status, "Saving to cache...", cache_info)
-            self.after(0, self.progress_bar.set, 0.7)
-            
-            # Save to cache and get updated status
-            save_voices_to_cache(self.voices_list_full)
-            cache_info = get_cache_status()
-            
-            self.after(0, self.process_loaded_voices)
-            self.after(0, self.update_detailed_status, "Processing voices...", cache_info)
-            self.after(0, self.progress_bar.set, 0.9)
+            try:
+                voices_manager = asyncio.run(load_voices_with_retry())
+                self.voices_list_full = voices_manager.voices
+                
+                # Save to cache if successful
+                try:
+                    logging.info("Saving voices to cache")
+                    self.after(0, self.update_detailed_status, "Saving to cache...", cache_info)
+                    self.after(0, self.progress_bar.set, 0.7)
+                    save_voices_to_cache(self.voices_list_full)
+                    cache_info = get_cache_status()  # Refresh cache status
+                except Exception as e:
+                    logging.error(f"Failed to save voices to cache: {e}")
+                
+                self.after(0, self.process_loaded_voices)
+                self.after(0, self.update_detailed_status, "Processing voices...", cache_info)
+                self.after(0, self.progress_bar.set, 0.9)
+
+            except NetworkError as e:
+                error_msg = f"Network error loading voices: {e}"
+                logging.error(error_msg)
+                handle_error(e, "Network Error", parent=self)
+                self.after(0, self.update_detailed_status, error_msg, cache_info)
+                self.after(0, self.progress_bar.set, 0)
+                self.after(0, self.voice_combobox.configure, {"values": ["Error: Network unavailable"]})
+                self.voice_combobox.set("Error: Network unavailable")
+
+            except TTSError as e:
+                error_msg = f"TTS service error: {e}"
+                logging.error(error_msg)
+                handle_error(e, "TTS Service Error", parent=self)
+                self.after(0, self.update_detailed_status, error_msg, cache_info)
+                self.after(0, self.progress_bar.set, 0)
+                self.after(0, self.voice_combobox.configure, {"values": ["Error: Service unavailable"]})
+                self.voice_combobox.set("Error: Service unavailable")
 
         except Exception as e:
-            error_msg = f"Error loading voices: {str(e)}"
-            self.after(0, self.update_detailed_status, error_msg, cache_info)
+            error_msg = f"Unexpected error loading voices: {e}"
+            logging.error(error_msg)
+            handle_error(e, "Voice Loading Error", parent=self)
+            self.after(0, self.update_detailed_status, error_msg)
             self.after(0, self.progress_bar.set, 0)
             self.after(0, self.voice_combobox.configure, {"values": ["Error loading voices"]})
             self.voice_combobox.set("Error loading voices")
@@ -1169,60 +1326,143 @@ class EdgeTTSApp(ctk.CTk):
         threading.Thread(target=synthesis_and_playback_thread, daemon=True).start()
 
     def play_audio(self, audio_path):
-        """Play audio using pygame mixer"""
+        """
+        Play audio using pygame mixer with comprehensive error handling
+        
+        Args:
+            audio_path: Path to the audio file to play
+            
+        Raises:
+            AudioError: If audio playback fails
+            FileOperationError: If file operations fail
+        """
         try:
-            # Make sure mixer is not initialized before initializing
-            if pygame.mixer.get_init():
-                pygame.mixer.quit()
+            # Validate input
+            if not audio_path or not os.path.exists(audio_path):
+                raise FileOperationError(f"Audio file not found: {audio_path}")
+            if os.path.getsize(audio_path) == 0:
+                raise FileOperationError("Audio file is empty")
+                
+            logging.info(f"Starting audio playback: {audio_path}")
             
-            # Initialize mixer with good settings for speech
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
-            pygame.mixer.music.load(audio_path)
-            pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
-            pygame.mixer.music.play()
+            # Safely quit any existing mixer
+            try:
+                if pygame.mixer.get_init():
+                    pygame.mixer.quit()
+                    logging.debug("Successfully quit existing mixer")
+            except Exception as e:
+                logging.warning(f"Error while quitting existing mixer: {e}")
             
-            # Get audio length
-            audio = pygame.mixer.Sound(audio_path)
-            self.audio_length = audio.get_length()
-            self.total_time.configure(text=self.format_time(self.audio_length))
+            # Initialize mixer with error handling
+            try:
+                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=2048)
+                logging.debug("Mixer initialized successfully")
+            except Exception as e:
+                raise AudioError(f"Failed to initialize audio system: {e}")
             
-            # Start progress updates
-            self.update_progress()
+            # Load and prepare audio
+            try:
+                pygame.mixer.music.load(audio_path)
+                pygame.mixer.music.set_volume(self.volume_slider.get() / 100)
+                
+                # Get audio length
+                audio = pygame.mixer.Sound(audio_path)
+                self.audio_length = audio.get_length()
+                self.total_time.configure(text=self.format_time(self.audio_length))
+                
+                logging.debug(f"Audio loaded successfully. Length: {self.audio_length}s")
+            except Exception as e:
+                raise AudioError(f"Failed to load audio file: {e}")
             
+            # Start playback
+            try:
+                pygame.mixer.music.play()
+                logging.info("Audio playback started")
+                
+                # Start progress updates
+                self.update_progress()
+            except Exception as e:
+                raise AudioError(f"Failed to start playback: {e}")
+            
+        except FileOperationError as e:
+            handle_error(e, "File Error", parent=self)
+            self._cleanup_audio_system()
+        except AudioError as e:
+            handle_error(e, "Audio Error", parent=self)
+            self._cleanup_audio_system()
         except Exception as e:
-            self.update_detailed_status(f"Error playing audio: {e}")
+            handle_error(e, "Unexpected Error", parent=self)
+            self._cleanup_audio_system()
+
+    def _cleanup_audio_system(self):
+        """Safely clean up the audio system"""
+        try:
             if pygame.mixer.get_init():
                 pygame.mixer.quit()
-            self._set_speaking_state(False)  # Reset state on error
+            self._set_speaking_state(False)
+            logging.info("Audio system cleaned up")
+        except Exception as e:
+            logging.error(f"Error during audio system cleanup: {e}")
 
     def update_progress(self):
-        """Update progress bar and time display"""
+        """Update progress bar and time display with error handling"""
         try:
-            if pygame.mixer.get_init() and (pygame.mixer.music.get_busy() or self.is_paused) and not self.stop_requested.is_set():
-                current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
-                if current_pos < 0:  # When paused, get_pos returns -1
-                    current_pos = float(self.progress_bar.get()) * self.audio_length
-                progress = current_pos / self.audio_length if self.audio_length > 0 else 0
-                self.progress_bar.set(progress)
-                self.current_time.configure(text=self.format_time(current_pos))
-                self.update_progress_id = self.after(100, self.update_progress)
-            else:
-                self.progress_bar.set(0)
-                self.current_time.configure(text="0:00")
-                if self.update_progress_id:
-                    self.after_cancel(self.update_progress_id)
-                    self.update_progress_id = None
-                # Only reset speaking state if we're not paused and mixer is initialized
+            if not pygame.mixer.get_init():
+                logging.debug("Mixer not initialized, stopping progress updates")
+                self._reset_progress()
+                return
+                
+            if pygame.mixer.music.get_busy() or self.is_paused:
+                if self.stop_requested.is_set():
+                    logging.debug("Stop requested, ending progress updates")
+                    self._reset_progress()
+                    return
+                    
                 try:
-                    if not self.is_paused and pygame.mixer.get_init() and not pygame.mixer.music.get_busy():
-                        pygame.mixer.quit()
-                        self.after(0, lambda: self._set_speaking_state(False))
+                    current_pos = pygame.mixer.music.get_pos() / 1000  # Convert to seconds
+                    if current_pos < 0:  # When paused, get_pos returns -1
+                        current_pos = float(self.progress_bar.get()) * self.audio_length
+                        
+                    progress = current_pos / self.audio_length if self.audio_length > 0 else 0
+                    self.progress_bar.set(progress)
+                    self.current_time.configure(text=self.format_time(current_pos))
+                    
+                    # Schedule next update
+                    self.update_progress_id = self.after(100, self.update_progress)
+                except Exception as e:
+                    logging.error(f"Error updating progress: {e}")
+                    self._reset_progress()
+            else:
+                logging.debug("Playback finished or stopped")
+                self._reset_progress()
+                
+        except Exception as e:
+            logging.error(f"Unexpected error in progress update: {e}")
+            self._reset_progress()
+
+    def _reset_progress(self):
+        """Reset progress-related UI elements"""
+        try:
+            self.progress_bar.set(0)
+            self.current_time.configure(text="0:00")
+            
+            if self.update_progress_id:
+                self.after_cancel(self.update_progress_id)
+                self.update_progress_id = None
+            
+            # Only reset speaking state if we're not paused and mixer is initialized
+            if not self.is_paused:
+                try:
+                    if pygame.mixer.get_init() and not pygame.mixer.music.get_busy():
+                        self._cleanup_audio_system()
                 except pygame.error:
                     # If there's an error with the mixer, just reset the speaking state
-                    self.after(0, lambda: self._set_speaking_state(False))
+                    self._set_speaking_state(False)
+                    
         except Exception as e:
-            print(f"Error updating progress: {e}")
-            self.after(0, lambda: self._set_speaking_state(False))
+            logging.error(f"Error resetting progress: {e}")
+            # Ensure speaking state is reset even if reset fails
+            self._set_speaking_state(False)
 
     def format_time(self, seconds):
         """Format seconds to MM:SS"""
@@ -1343,45 +1583,119 @@ class EdgeTTSApp(ctk.CTk):
             self.update_detailed_status(f"Error loading file: {str(e)}")
 
     def _read_file_content(self, filepath):
-        """Read content from various file types."""
-        file_ext = os.path.splitext(filepath)[1].lower()
+        """
+        Read content from various file types with comprehensive error handling
         
+        Args:
+            filepath: Path to the file to read
+            
+        Returns:
+            str: The content of the file
+            
+        Raises:
+            FileOperationError: If file operations fail
+        """
         try:
-            if file_ext == '.docx':
-                return self._read_docx(filepath)
-            elif file_ext == '.rtf':
-                return self._read_rtf(filepath)
-            else:  # Default to text file
-                return self._read_text_file(filepath)
+            # Validate input
+            if not filepath or not os.path.exists(filepath):
+                raise FileOperationError(f"File not found: {filepath}")
+            if os.path.getsize(filepath) == 0:
+                raise FileOperationError("File is empty")
+                
+            file_ext = os.path.splitext(filepath)[1].lower()
+            logging.info(f"Reading file: {filepath} (type: {file_ext})")
+            
+            try:
+                if file_ext == '.docx':
+                    return self._read_docx(filepath)
+                elif file_ext == '.rtf':
+                    return self._read_rtf(filepath)
+                else:  # Default to text file
+                    return self._read_text_file(filepath)
+            except Exception as e:
+                raise FileOperationError(f"Error reading file content: {e}")
+                
+        except FileOperationError:
+            raise
         except Exception as e:
-            raise Exception(f"Error reading file: {str(e)}")
+            raise FileOperationError(f"Unexpected error reading file: {e}")
 
     def _read_text_file(self, filepath):
-        """Read content from a text file with encoding detection."""
-        with open(filepath, 'rb') as file:
-            raw_data = file.read()
-            detected = chardet.detect(raw_data)
-            encoding = detected['encoding'] or 'utf-8'
-            
-        with open(filepath, 'r', encoding=encoding) as file:
-            return file.read()
+        """Read content from a text file with encoding detection and error handling"""
+        try:
+            # Read file for encoding detection
+            with open(filepath, 'rb') as file:
+                raw_data = file.read()
+                detected = chardet.detect(raw_data)
+                encoding = detected['encoding'] or 'utf-8'
+                logging.debug(f"Detected encoding: {encoding}")
+                
+            # Read file with detected encoding
+            with open(filepath, 'r', encoding=encoding) as file:
+                content = file.read()
+                if not content.strip():
+                    raise FileOperationError("File contains no text content")
+                return content
+                
+        except UnicodeDecodeError as e:
+            raise FileOperationError(f"Failed to decode file with detected encoding: {e}")
+        except Exception as e:
+            raise FileOperationError(f"Error reading text file: {e}")
 
     def _read_docx(self, filepath):
-        """Read content from a DOCX file."""
-        doc = docx.Document(filepath)
-        return '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+        """Read content from a DOCX file with error handling"""
+        try:
+            doc = docx.Document(filepath)
+            content = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+            if not content.strip():
+                raise FileOperationError("DOCX file contains no text content")
+            return content
+        except Exception as e:
+            raise FileOperationError(f"Error reading DOCX file: {e}")
 
     def _read_rtf(self, filepath):
-        """Read content from an RTF file."""
-        # For RTF files, we'll use a simple text reading approach
-        # as proper RTF parsing would require additional dependencies
-        return self._read_text_file(filepath)
+        """Read content from an RTF file with error handling"""
+        try:
+            # For RTF files, we'll use a simple text reading approach
+            content = self._read_text_file(filepath)
+            if not content.strip():
+                raise FileOperationError("RTF file contains no text content")
+            return content
+        except Exception as e:
+            raise FileOperationError(f"Error reading RTF file: {e}")
 
     def _synthesize_speech(self, text, voice_short_name, output_filepath):
+        """
+        Synthesize speech with comprehensive error handling
+        
+        Args:
+            text: Text to synthesize
+            voice_short_name: Voice to use
+            output_filepath: Where to save the audio
+            
+        Returns:
+            bool: Whether synthesis was successful
+            
+        Raises:
+            SynthesisError: If synthesis fails
+            NetworkError: If network-related error occurs
+            FileOperationError: If file operations fail
+        """
         try:
             if self.stop_requested.is_set():
+                logging.info("Operation stopped before synthesis.")
                 self.after(0, self.update_detailed_status, "Operation stopped before synthesis.")
                 return False
+
+            # Validate inputs
+            if not text or not text.strip():
+                raise ValueError("Text input is empty")
+            if not voice_short_name:
+                raise ValueError("No voice selected")
+                
+            # Log synthesis attempt
+            logging.info(f"Starting synthesis with voice: {voice_short_name}")
+            logging.debug(f"Text length: {len(text)} characters")
 
             # Get rate and pitch values
             rate = self.rate_slider.get()
@@ -1389,27 +1703,84 @@ class EdgeTTSApp(ctk.CTk):
 
             # Rate needs to be a percentage string (e.g., "+0%", "+50%", "-50%")
             rate_percent = int((rate - 1.0) * 100)  # Convert multiplier to percentage difference
-            communicate = edge_tts.Communicate(
-                text,
-                voice_short_name,
-                rate=f"{rate_percent:+d}%",  # Format: +0%, +50%, -50%
-                pitch=f"{int(pitch):+d}Hz"  # Format: +0Hz, +10Hz, etc.
-            )
+            
+            # Ensure output directory exists
+            output_dir = os.path.dirname(output_filepath)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+
+            # Create communicate instance
+            try:
+                communicate = edge_tts.Communicate(
+                    text,
+                    voice_short_name,
+                    rate=f"{rate_percent:+d}%",
+                    pitch=f"{int(pitch):+d}Hz"
+                )
+            except edge_tts.exceptions.NoConnectionException as e:
+                raise NetworkError(f"Failed to connect to TTS service: {e}")
+            except edge_tts.exceptions.InvalidVoiceException as e:
+                raise SynthesisError(f"Invalid voice selected: {e}")
+            except Exception as e:
+                raise SynthesisError(f"Failed to initialize TTS: {e}")
 
             async def synthesize_with_retry():
-                await retry_async_operation(communicate.save, output_filepath)
+                try:
+                    await retry_async_operation(communicate.save, output_filepath)
+                except (edge_tts.exceptions.NoConnectionException,
+                        edge_tts.exceptions.CommunicationError,
+                        ConnectionError,
+                        TimeoutError) as e:
+                    raise NetworkError(f"Network error during synthesis: {e}")
+                except Exception as e:
+                    raise SynthesisError(f"Synthesis failed: {e}")
 
-            asyncio.run(synthesize_with_retry())
+            # Run synthesis
+            try:
+                asyncio.run(synthesize_with_retry())
+            except Exception as e:
+                # Re-raise with appropriate error type
+                if isinstance(e, NetworkError):
+                    raise
+                elif isinstance(e, SynthesisError):
+                    raise
+                else:
+                    raise SynthesisError(f"Unexpected error during synthesis: {e}")
 
-            if self.stop_requested.is_set(): # Check again after potentially long synthesis
-                self.after(0, self.update_detailed_status, "Operation stopped after synthesis, before playback/save completion.")
+            # Verify output file
+            if not os.path.exists(output_filepath):
+                raise FileOperationError("Synthesis completed but output file not found")
+            if os.path.getsize(output_filepath) == 0:
+                raise FileOperationError("Synthesis completed but output file is empty")
+
+            if self.stop_requested.is_set():
+                logging.info("Operation stopped after synthesis.")
+                self.after(0, self.update_detailed_status, "Operation stopped after synthesis.")
                 if os.path.exists(output_filepath) and output_filepath.endswith(TEMP_AUDIO_FILENAME):
-                    try: os.remove(output_filepath) # Clean up temp file if stop requested
-                    except Exception: pass
+                    try:
+                        os.remove(output_filepath)
+                        logging.info("Cleaned up temporary file after stop request")
+                    except Exception as e:
+                        logging.warning(f"Failed to clean up temporary file: {e}")
                 return False
+
+            logging.info("Synthesis completed successfully")
             return True
+
+        except ValueError as e:
+            handle_error(e, "Validation Error", parent=self)
+            return False
+        except NetworkError as e:
+            handle_error(e, "Network Error", parent=self)
+            return False
+        except SynthesisError as e:
+            handle_error(e, "Synthesis Error", parent=self)
+            return False
+        except FileOperationError as e:
+            handle_error(e, "File Error", parent=self)
+            return False
         except Exception as e:
-            self.after(0, self.update_detailed_status, f"Synthesis error: {e}")
+            handle_error(e, "Unexpected Error", parent=self)
             return False
 
     def _set_speaking_state(self, speaking: bool):
