@@ -107,3 +107,23 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+releases/*
+!releases/.gitkeep
+installers/*
+!installers/.gitkeep
+temp_audio_edge_tts*.mp3
+preview_audio_edge_tts.mp3
+.edge_tts_gui_config.json
+.edge_tts_gui/
+
+# OS specific
+.DS_Store
+Thumbs.db
