@@ -34,29 +34,15 @@ EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interf
 
 ## Installation 🔧
 
-1. **Clone the repository:**
+1. **Download the latest release** from the [releases page](https://github.com/your-username/EdgeTTS-CustomTkinter-GUI/releases).
+
+2. **Run the installer script:**
     ```bash
-    git clone https://github.com/your-username/EdgeTTS-CustomTkinter-GUI.git
-    cd EdgeTTS-CustomTkinter-GUI
+    chmod +x install.sh
+    ./install.sh
     ```
 
-2. **Create a virtual environment (recommended):**
-    ```bash
-    python -m venv venv
-    # On Windows
-    venv\Scripts\activate
-    # On macOS/Linux
-    source venv/bin/activate
-    ```
-
-3. **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-    - **Note for `playsound`:**
-        - On Linux, you might need GStreamer: `sudo apt-get install python3-gst-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-plugins-good`
-        - On macOS, you might need PyObjC: `pip install PyObjC`
-        - Windows usually works out of the box.
+This will install the application and create a desktop entry, allowing you to run EdgeTTS-GUI from your applications menu.
 
 ## Usage ▶️
 
