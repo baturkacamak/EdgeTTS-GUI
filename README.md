@@ -43,6 +43,56 @@ A user-friendly, cross-platform graphical interface for Microsoft's Edge Text-to
 2. Double-click the downloaded file to install using your system's package manager.
 3. Launch EdgeTTS-GUI from your applications menu.
 
+## Development Setup
+
+### Project Structure
+```
+EdgeTTS-GUI/
+├── src/                    # Source code
+│   ├── main.py            # Main application file
+│   ├── dev.py             # Development utilities
+│   ├── utils/             # Utility modules
+│   │   └── voice_cache.py # Voice caching functionality
+│   └── version.py         # Version information
+├── assets/                # Media files
+│   ├── icon.ico          # Windows icon
+│   ├── icon.png          # Application icon
+│   ├── icon.svg          # Vector icon
+│   └── icons/            # Additional icons
+├── scripts/              # Build and utility scripts
+│   ├── build_packages.sh # Package building script
+│   └── create_icon.py    # Icon generation script
+├── installers/           # Installer configurations
+├── releases/            # Built releases
+├── requirements.txt     # Python dependencies
+├── README.md           # Project documentation
+└── BUILD.md           # Build instructions
+```
+
+### Setting Up Development Environment
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/baturkacamak/EdgeTTS-GUI.git
+   cd EdgeTTS-GUI
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run the application:
+   ```bash
+   python src/main.py
+   ```
+
 ## How to Use
 
 1. Launch EdgeTTS-GUI from your applications menu
@@ -68,6 +118,10 @@ Contributions are welcome! Here's how you can help:
 4. Commit your changes (`git commit -am 'Add new feature'`)
 5. Push to the branch (`git push origin feature/improvement`)
 6. Create a Pull Request
+
+## Building from Source
+
+For detailed build instructions, please refer to [BUILD.md](BUILD.md).
 
 ## Credits
 
