@@ -34,15 +34,25 @@ EdgeTTS-CustomTkinter-GUI is designed to provide a seamless and intuitive interf
 
 ## Installation 🔧
 
-1. **Download the latest release** from the [releases page](https://github.com/baturkacamak/EdgeTTS-CustomTkinter-GUI/releases).
+### Windows
+1. Download the latest Windows installer (`EdgeTTS-GUI-Setup.exe`) from the [releases page](https://github.com/baturkacamak/EdgeTTS-CustomTkinter-GUI/releases).
+2. Run the installer and follow the installation wizard.
+3. Launch EdgeTTS-GUI from the Start menu or desktop shortcut.
 
-2. **Run the installer script:**
+### macOS
+1. Download the latest macOS installer (`EdgeTTS-GUI.dmg`) from the [releases page](https://github.com/baturkacamak/EdgeTTS-CustomTkinter-GUI/releases).
+2. Open the DMG file.
+3. Drag EdgeTTS-GUI to your Applications folder.
+4. Launch EdgeTTS-GUI from the Applications folder or Launchpad.
+
+### Linux
+1. Download the latest Linux package from the [releases page](https://github.com/baturkacamak/EdgeTTS-CustomTkinter-GUI/releases).
+2. Extract the archive and run the installer:
     ```bash
-    chmod +x install.sh
-    ./install.sh
+    chmod +x installers/linux_install.sh
+    ./installers/linux_install.sh
     ```
-
-This will install the application and create a desktop entry, allowing you to run EdgeTTS-GUI from your applications menu.
+3. Launch EdgeTTS-GUI from your applications menu.
 
 ## Usage ▶️
 
