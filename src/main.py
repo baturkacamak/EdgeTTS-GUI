@@ -178,7 +178,6 @@ TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".edge_tts_gui_config.json")  # Config file in user's home directory
-ICON_FILES = [os.path.join("assets", "icon.ico"), os.path.join("assets", "icon.png")]  # Application icon files
 
 # Color scheme
 COLORS = {
@@ -197,6 +196,9 @@ COLORS = {
     "header_light": "#0078D4",  # Primary color for light mode
     "header_dark": "#4CC2FF"    # Lighter blue for dark mode
 }
+
+# Get the absolute path to the assets directory
+ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
 
 # Icons (Unicode)
 ICONS = {
@@ -223,6 +225,9 @@ ICONS = {
     "NEXT": "⏭️",
     "PREVIOUS": "⏮️",
 }
+
+# Update icon file paths to use ASSETS_DIR
+ICON_FILES = [os.path.join(ASSETS_DIR, "icon.ico"), os.path.join(ASSETS_DIR, "icon.png")]
 
 # Supported input file formats
 SUPPORTED_INPUT_FORMATS = [
@@ -2315,14 +2320,18 @@ class EdgeTTSApp(ctk.CTk):
         for icon_file in ICON_FILES:
             if os.path.exists(icon_file):
                 try:
+                    logging.info(f"Attempting to load icon from: {icon_file}")
                     icon = Image.open(icon_file)
+                    # Keep the original image format without converting to RGB
                     photo = ImageTk.PhotoImage(icon)
-                    self.wm_iconphoto(True, photo)
+                    self.iconphoto(True, photo)
+                    logging.info(f"Successfully set icon using {icon_file}")
                     return  # Successfully set the icon
                 except Exception as e:
-                    print(f"Could not set icon using {icon_file}: {e}")
+                    logging.warning(f"Could not set icon using {icon_file}: {e}")
+                    continue
         
-        print("Could not set any application icon")
+        logging.warning("Could not set any application icon")
 
     def on_rate_change(self, value):
         """Handle rate slider change"""
