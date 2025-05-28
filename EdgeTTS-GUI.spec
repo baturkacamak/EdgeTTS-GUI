@@ -1,18 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    ['src/main.py'],
     pathex=[],
     binaries=[],
-    datas=[('icon.png', '.')],
+    datas=[
+        ('assets/icon.ico', '.'),
+        ('assets/icon.png', '.'),
+        ('assets/icons/*', 'icons/'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
-    optimize=0,
 )
 pyz = PYZ(a.pure)
 

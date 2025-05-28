@@ -13,7 +13,7 @@ import docx  # For DOCX files
 import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
 import pygame  # For advanced audio playback
-from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status, clear_cache
+from utils.voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status, clear_cache
 from PIL import Image, ImageTk  # For icon support
 import random
 import logging
@@ -181,7 +181,7 @@ TEMP_AUDIO_FILENAME = "temp_audio_edge_tts1.mp3"  # Keep MP3 as default for temp
 DEFAULT_TEXT = "Hello, this is a test of Microsoft Edge Text-to-Speech with CustomTkinter."
 DEFAULT_VOICE = "JennyNeural (en-US)"  # Default voice to select when loading voices
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".edge_tts_gui_config.json")  # Config file in user's home directory
-ICON_FILES = ["icon.ico", "icon.png"]  # Application icon files
+ICON_FILES = [os.path.join("assets", "icon.ico"), os.path.join("assets", "icon.png")]  # Application icon files
 
 # Color scheme
 COLORS = {
