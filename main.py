@@ -13,7 +13,7 @@ import docx  # For DOCX files
 import chardet  # For detecting text file encodings
 import tkinter.ttk as ttk
 import pygame  # For advanced audio playback
-from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status
+from voice_cache import load_cached_voices, save_voices_to_cache, get_cache_status, clear_cache
 from PIL import Image, ImageTk  # For icon support
 import random
 import logging
@@ -2127,14 +2127,32 @@ class EdgeTTSApp(ctk.CTk):
         status_frame.grid_propagate(False)  # Prevent the frame from expanding
         status_frame.configure(width=400, height=200)  # Increased height to fit content better
 
-        # Status header
+        # Status header with clear cache button
+        header_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+        header_frame.grid_columnconfigure(1, weight=1)
+
         self.status_header = ctk.CTkLabel(
-            status_frame,
+            header_frame,
             text=f"{ICONS['STATUS']} Status Information",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=self.get_header_color()
         )
-        self.status_header.grid(row=0, column=0, sticky="w", padx=10, pady=(10, 5))
+        self.status_header.grid(row=0, column=0, sticky="w")
+
+        # Clear cache button
+        self.clear_cache_button = ctk.CTkButton(
+            header_frame,
+            text=f"{ICONS['CACHE']} Clear Cache",
+            command=self.on_clear_cache,
+            width=120,
+            height=32,
+            font=ctk.CTkFont(size=13),
+            fg_color=COLORS["warning"],
+            hover_color=COLORS["warning_dark"]
+        )
+        self.clear_cache_button.grid(row=0, column=1, sticky="e")
+        ToolTip(self.clear_cache_button, "Clear voice cache and fetch fresh data")
 
         # Status container
         info_frame = ctk.CTkFrame(status_frame, fg_color="transparent")
@@ -2368,6 +2386,30 @@ class EdgeTTSApp(ctk.CTk):
     def show_find_replace(self, event=None):
         """Show the find and replace dialog"""
         FindReplaceDialog(self, self.text_input)
+
+    def on_clear_cache(self):
+        """Handle clear cache button click"""
+        if self.is_speaking:
+            return
+
+        # Disable buttons during cache clear
+        self.clear_cache_button.configure(state="disabled")
+        self.speak_button.configure(state="disabled")
+        self.save_button.configure(state="disabled")
+        self.voice_combobox.configure(state="disabled")
+
+        # Clear the cache
+        if clear_cache():
+            self.update_detailed_status("Cache cleared successfully. Reloading voices...")
+            # Reload voices
+            self.load_initial_voices()
+        else:
+            self.update_detailed_status("Failed to clear cache.")
+            # Re-enable buttons
+            self.clear_cache_button.configure(state="normal")
+            self.speak_button.configure(state="normal")
+            self.save_button.configure(state="normal")
+            self.voice_combobox.configure(state="normal")
 
 if __name__ == "__main__":
     app = EdgeTTSApp()

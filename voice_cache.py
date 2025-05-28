@@ -87,4 +87,14 @@ def save_voices_to_cache(voices):
             json.dump(cache_data, f)
         return True
     except Exception as e:
-        return False 
+        return False
+
+def clear_cache():
+    """Clear the voice cache by deleting the cache file"""
+    try:
+        if os.path.exists(CACHE_FILE):
+            os.remove(CACHE_FILE)
+            return True
+    except Exception as e:
+        return False
+    return False 
