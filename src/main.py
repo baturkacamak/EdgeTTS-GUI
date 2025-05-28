@@ -881,6 +881,7 @@ class EdgeTTSApp(ctk.CTk):
         self.bind("<Escape>", lambda e: self.on_stop())          # Esc to stop
         self.bind("<Control-q>", self.on_closing)                # Ctrl+Q to quit
         self.bind("<Control-f>", lambda e: self.show_find_replace())  # Ctrl+F to find/replace
+        self.bind("<Control-r>", lambda e: self.on_speak())      # Ctrl+R to read from cursor
         
         # Function to get header color based on theme
         self.get_header_color = lambda: COLORS["header_dark"] if ctk.get_appearance_mode() == "Dark" else COLORS["header_light"]
@@ -1264,12 +1265,29 @@ class EdgeTTSApp(ctk.CTk):
         # Save the selected voice to config when changed
         self.save_config()
 
+    def get_text_from_cursor(self):
+        """Get text from cursor position to the end of the text"""
+        try:
+            cursor_pos = self.text_input.index("insert")
+            text = self.text_input.get(cursor_pos, "end-1c")
+            return text.strip()
+        except Exception as e:
+            logging.error(f"Error getting text from cursor: {e}")
+            return ""
+
     def on_speak(self):
         if self.is_speaking: return
 
-        text = self.text_input.get("1.0", "end-1c").strip()
+        # Try to get selected text first
+        try:
+            text = self.text_input.get("sel.first", "sel.last").strip()
+            if not text:  # No selection, try getting text from cursor
+                text = self.get_text_from_cursor()
+        except tkinter.TclError:  # No selection
+            text = self.get_text_from_cursor()
+
         if not text:
-            self.update_detailed_status("Error: Text input is empty.")
+            self.update_detailed_status("Error: No text to read.")
             return
 
         selected_voice_short_name = self.get_selected_voice_short_name()
