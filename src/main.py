@@ -1106,19 +1106,17 @@ class EdgeTTSApp(ctk.CTk):
         self.last_selected_voice = self.load_config().get('last_voice', DEFAULT_VOICE)
         self.is_speaking = False
         self.stop_requested = threading.Event()
+        self.initial_text_set = False  # Flag to track if initial text has been set
 
         # Setup UI components
         self.setup_voice_selection()
         self.setup_controls()
         self.setup_status_section()
 
-        self.load_initial_voices()
+        # Initially set English text (will be updated after voices load)
+        self.text_input.insert("1.0", DEFAULT_TEXTS["en"])
 
-        # Initialize text input with appropriate language text
-        if self.last_selected_voice:
-            self.update_text_input_for_language(self.last_selected_voice)
-        else:
-            self.text_input.insert("1.0", DEFAULT_TEXTS["en"])
+        self.load_initial_voices()
 
     def adjust_window_size(self):
         """Adjust window size to fit components"""
@@ -1284,6 +1282,13 @@ class EdgeTTSApp(ctk.CTk):
             self.progress_bar.set(1.0)
             self.update_voice_combobox_post_load()
 
+            # Set the correct initial text based on the selected voice
+            if not self.initial_text_set:
+                selected_voice = self.voice_map.get(self.voice_combobox.get())
+                if selected_voice:
+                    self.update_text_input_for_language(selected_voice)
+                    self.initial_text_set = True
+
         except Exception as e:
             error_msg = f"Error processing voices: {str(e)}"
             self.update_detailed_status(error_msg)
@@ -1334,6 +1339,13 @@ class EdgeTTSApp(ctk.CTk):
             self.speak_button.configure(state="normal")
             self.save_button.configure(state="normal")
             self.update_detailed_status("Voices loaded. Ready.")
+
+            # Set the correct initial text based on the selected voice
+            if not self.initial_text_set:
+                selected_voice = self.voice_map.get(default_voice)
+                if selected_voice:
+                    self.update_text_input_for_language(selected_voice)
+                    self.initial_text_set = True
         else:
             # No voices found - set appropriate messages
             no_voices_msg = "No voices found"
